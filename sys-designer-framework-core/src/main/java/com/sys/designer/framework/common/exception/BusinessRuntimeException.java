@@ -1,0 +1,51 @@
+/**
+ * Copyright (C) Oceancode Cloud Technologies Co., Ltd. 2024-2024 .All Rights Reserved.
+ */
+
+package com.sys.designer.framework.common.exception;
+
+import com.sys.designer.framework.api.ErrorCode;
+
+/**
+ * @author qinjiawang
+ */
+public class BusinessRuntimeException extends ErrorCodeRuntimeException {
+
+    private ErrorCode code;
+
+    public BusinessRuntimeException(ErrorCode code, String message, Object... args) {
+        super(formatMessage(message, args));
+        this.code = code;
+    }
+
+    private static String formatMessage(String message, Object... args) {
+        if (args == null || args.length == 0) {
+            return message;
+        }
+        return String.format(message, args);
+    }
+
+    public BusinessRuntimeException(ErrorCode code) {
+        super(code.getMessage());
+        this.code = code;
+    }
+
+    public BusinessRuntimeException(ErrorCode code, Throwable throwable) {
+        super(throwable);
+        this.code = code;
+    }
+
+    public ErrorCode getCode() {
+        return code;
+    }
+
+    @Override
+    public String getErrorCode() {
+        return code.getShortCode();
+    }
+
+    @Override
+    public String getMessage() {
+        return super.getMessage();
+    }
+}

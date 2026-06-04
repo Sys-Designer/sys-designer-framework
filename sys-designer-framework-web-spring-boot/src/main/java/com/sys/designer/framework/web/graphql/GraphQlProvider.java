@@ -1,0 +1,423 @@
+package com.sys.designer.framework.web.graphql;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.sys.designer.framework.annotation.Query;
+import com.sys.designer.framework.api.TypeEnum;
+import com.sys.designer.framework.common.config.CommonConfig;
+import com.sys.designer.framework.common.errorcode.CommonErrorCode;
+import com.sys.designer.framework.common.exception.BusinessRuntimeException;
+import com.sys.designer.framework.common.list.IntegerList;
+import com.sys.designer.framework.common.list.LongList;
+import com.sys.designer.framework.common.list.ResourceInfo;
+import com.sys.designer.framework.common.list.StringList;
+import com.sys.designer.framework.common.util.ComponentUtil;
+import com.sys.designer.framework.common.util.JsonUtil;
+import com.sys.designer.framework.common.util.ValueUtil;
+import com.sys.designer.framework.web.graphql.datatype.DslType;
+import com.sys.designer.framework.function.ArgumentResolver;
+import com.sys.designer.framework.function.QueryFunction;
+import com.sys.designer.framework.web.util.ContextUtil;
+import graphql.GraphQL;
+import graphql.Scalars;
+import graphql.language.*;
+import graphql.schema.*;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
+import java.util.*;
+
+public class GraphQlProvider {
+    private GraphQL graphQL;
+
+    private volatile List<ArgumentResolver> resolvers;
+
+    private final QueryFunction queryFunction;
+
+    private final DataFetcherProvider dataFetcherProvider;
+
+    public GraphQlProvider(QueryFunction queryFunction, CommonConfig commonConfig, DataFetcherProvider dataFetcherProvider) {
+        this.queryFunction = queryFunction;
+        this.dataFetcherProvider = dataFetcherProvider;
+        try {
+            init();
+        } catch (Exception e) {
+            throw new BusinessRuntimeException(CommonErrorCode.SERVER_ERROR, e);
+        }
+    }
+
+    public GraphQL graphQL() {
+        return graphQL;
+    }
+
+    private List<ArgumentResolver> resolvers() {
+        if (Objects.nonNull(resolvers)) {
+            return resolvers;
+        }
+        synchronized (this) {
+            if (Objects.nonNull(resolvers)) {
+                return resolvers;
+            }
+
+            resolvers = new ArrayList<>(ComponentUtil.getBeans(ArgumentResolver.class).values());
+        }
+
+        return resolvers;
+    }
+
+    private void init() throws IOException {
+        GraphQLSchema graphQLSchema = createSchema();
+        this.graphQL = GraphQL.newGraphQL(graphQLSchema).build();
+    }
+
+    private void getMethods(List<Method> methods, Class classType) {
+        for (Method method : classType.getDeclaredMethods()) {
+            if (Objects.isNull(method.getAnnotation(Query.class))) {
+                continue;
+            }
+            methods.add(method);
+        }
+        if (!classType.getSuperclass().equals(Object.class)) {
+            getMethods(methods, classType.getSuperclass());
+        }
+    }
+
+    private GraphQLSchema createSchema() {
+//        String basePackage = commonConfig.getValue("oc.dsl.query.package");
+//        Reflections reflections = new Reflections(basePackage);
+//        Set<Class<?>> sets = reflections.getTypesAnnotatedWith(Query.class);
+        String name = queryFunction.getClass().getSimpleName();
+        if (name.contains("$")) {
+            name = name.substring(0, name.indexOf("$"));
+        }
+        GraphQLObjectType.Builder queryBuilder = GraphQLObjectType.newObject()
+                .name(name);
+        Map<String, GraphQLOutputType> typeMapping = new HashMap<>();
+
+
+        List<Method> methods = new ArrayList<>();
+        getMethods(methods, queryFunction.getClass());
+        for (Method method : methods) {
+            Query methodQuery = method.getAnnotation(Query.class);
+            if (Objects.isNull(methodQuery)) {
+                continue;
+            }
+            String methodName = methodQuery.name();
+            if (ValueUtil.isEmpty(methodName)) {
+                methodName = method.getName();
+            }
+
+
+            boolean isList = Collection.class.isAssignableFrom(method.getReturnType());
+            Class returnType = methodQuery.returnType();
+            if (!isList) {
+                returnType = method.getReturnType();
+            }
+            if (void.class.equals(returnType)) {
+                returnType = Void.class;
+            }
+
+            GraphQLFieldDefinition.Builder methodBuilder = GraphQLFieldDefinition.newFieldDefinition();
+            methodBuilder.name(methodName);
+            List<String> argList = new ArrayList<>();
+            if (method.getParameterCount() > 0) {
+                for (Parameter parameter : method.getParameters()) {
+                    String argName = getParamName(parameter);
+                    argList.add(argName);
+                    methodBuilder.argument(GraphQLArgument.newArgument().name(argName).type(convertQLType(parameter.getType())).build());
+                }
+            }
+            DataFetcher defaultFeatcher =
+                    environment -> doDataFetcher(environment, method, queryFunction, argList);
+            DataFetcher dataFetcher;
+            if (Objects.nonNull(dataFetcherProvider)) {
+                dataFetcher = dataFetcherProvider.get(defaultFeatcher);
+            } else {
+                dataFetcher = new DefaultDataFetcher(defaultFeatcher);
+            }
+            String key = returnType.getName();
+            GraphQLOutputType graphQLOutputType = typeMapping.get(key);
+            if (String.class.equals(returnType) || Long.class.equals(returnType)) {
+                graphQLOutputType = Scalars.GraphQLString;
+            }
+            if (graphQLOutputType == null) {
+                typeMapping.put(key, graphQLOutputType);
+                List<Runnable> cbs = new ArrayList<>();
+                graphQLOutputType = createOutField(cbs, typeMapping, returnType);
+                cbs.forEach(cb -> cb.run());
+                typeMapping.put(key, graphQLOutputType);
+            }
+            methodBuilder.type(isList ? new GraphQLList(graphQLOutputType) : graphQLOutputType);
+            methodBuilder.dataFetcher(dataFetcher);
+            queryBuilder.field(methodBuilder.build());
+        }
+//        for (Class<?> c : sets) {
+//            Query query = c.getAnnotation(Query.class);
+//            String modelName = query.name();
+//            if (ValueUtil.isEmpty(modelName)) {
+//                modelName = c.getSimpleName();
+//            }
+//
+//            for (Method method : ReflectionUtils.getMethods(c, ReflectionUtilsPredicates.withAnnotation(Query.class))) {
+//
+//            }
+//        }
+
+        return GraphQLSchema.newSchema().query(queryBuilder.build()).build();
+    }
+
+    private String getParamName(Parameter parameter) {
+        RequestParam requestParam = parameter.getAnnotation(RequestParam.class);
+        String name = parameter.getName();
+        if (Objects.nonNull(requestParam)) {
+            name = requestParam.value();
+            if (ValueUtil.isEmpty(name)) {
+                name = parameter.getName();
+            }
+        }
+        return name;
+    }
+
+    private void collectClassAllFields(List<Field> list, Set<String> ids, Class<?> type) {
+        if (Objects.isNull(type)) {
+            return;
+        }
+        Field[] fields = type.getDeclaredFields();
+        if (Objects.isNull(fields) || fields.length == 0) {
+            return;
+        }
+        for (Field field : fields) {
+            if (ids.contains(field.getName())) {
+                continue;
+            }
+            list.add(field);
+        }
+        Class<?> superclass = type.getSuperclass();
+        if (Objects.nonNull(superclass) && !Objects.class.equals(superclass)) {
+            collectClassAllFields(list, ids, superclass);
+        }
+    }
+
+    public GraphQLOutputType createOutField(List<Runnable> cbs, Map<String, GraphQLOutputType> typeMapping, Class type) {
+        List<Field> fields = new ArrayList<>();
+        collectClassAllFields(fields, new HashSet<>(), type);
+        if (fields.isEmpty()) {
+            return null;
+        }
+        GraphQLObjectType.Builder builder = GraphQLObjectType.newObject().name(type.getSimpleName());
+        for (Field field : fields) {
+            String name = field.getName();
+            JsonProperty jsonProperty = field.getAnnotation(JsonProperty.class);
+            if (Objects.nonNull(jsonProperty)) {
+                name = jsonProperty.value();
+                if (ValueUtil.isEmpty(name)) {
+                    name = field.getName();
+                }
+            }
+            GraphQLScalarType scalarType = convertQLType(field.getType());
+            if (Long.class.equals(field.getType())) {
+                scalarType = Scalars.GraphQLString;
+            } else if (ResourceInfo.class.isAssignableFrom(field.getType())) {
+                String fieldKey = field.getType().getName();
+                GraphQLOutputType outputType = null;
+                if (typeMapping.containsKey(fieldKey)) {
+                    outputType = typeMapping.get(fieldKey);
+                    if (Objects.isNull(outputType)) {
+                        String finalName = name;
+                        cbs.add(() -> {
+                            builder.field(GraphQLFieldDefinition.newFieldDefinition().name(finalName).type(typeMapping.get(fieldKey)).build());
+                        });
+                        continue;
+                    }
+                } else {
+                    typeMapping.put(fieldKey, outputType);
+                    outputType = createOutField(cbs, typeMapping, field.getType());
+                    if (Objects.isNull(outputType)) {
+                        continue;
+                    }
+                    typeMapping.put(fieldKey, outputType);
+                }
+                builder.field(GraphQLFieldDefinition.newFieldDefinition().name(name).type(outputType).build());
+                continue;
+            } else if (List.class.isAssignableFrom(field.getType()) && !isSimpleList(field.getType())) {
+                ParameterizedType parameterizedType = (ParameterizedType) field.getType().getGenericSuperclass();
+                boolean hasSuper = Objects.nonNull(parameterizedType) && parameterizedType.getActualTypeArguments().length > 0;
+                if (hasSuper && parameterizedType.getActualTypeArguments().length == 0) {
+                    continue;
+                }
+                Class<?> targetClass = hasSuper ? (Class<?>) parameterizedType.getActualTypeArguments()[0] : null;
+                if (Object.class.equals(targetClass)) {
+                    continue;
+                }
+                if (!ResourceInfo.class.isAssignableFrom(targetClass)) {
+                    builder.field(GraphQLFieldDefinition.newFieldDefinition().name(name).type(scalarType).build());
+                    continue;
+                }
+                String fieldKey = targetClass.getName();
+                GraphQLOutputType outputType = null;
+                if (typeMapping.containsKey(fieldKey)) {
+                    outputType = typeMapping.get(fieldKey);
+                    if (Objects.isNull(outputType)) {
+                        String finalName = name;
+                        cbs.add(() -> {
+                            builder.field(GraphQLFieldDefinition.newFieldDefinition().name(finalName).type(typeMapping.get(fieldKey)).build());
+                        });
+                        continue;
+                    }
+                } else {
+                    typeMapping.put(fieldKey, outputType);
+                    outputType = createOutField(cbs, typeMapping, targetClass);
+                    if (Objects.isNull(outputType)) {
+                        continue;
+                    }
+                    typeMapping.put(fieldKey, outputType);
+                }
+                builder.field(GraphQLFieldDefinition.newFieldDefinition().name(name).type(GraphQLList.list(outputType)).build());
+                continue;
+            }
+            builder.field(GraphQLFieldDefinition.newFieldDefinition().name(name).type(scalarType).build());
+        }
+
+        return builder.build();
+    }
+
+    private boolean isSimpleList(Class<?> type) {
+        return LongList.class.isAssignableFrom(type) ||
+                IntegerList.class.isAssignableFrom(type) ||
+                StringList.class.isAssignableFrom(type);
+    }
+
+    private GraphQLScalarType convertQLType(Class type) {
+        if (Integer.class.equals(type)) {
+            return Scalars.GraphQLInt;
+        } else if (Long.class.equals(type)) {
+            return DslType.GraphQLLong;
+        } else if (Boolean.class.equals(type)) {
+            return Scalars.GraphQLBoolean;
+        } else if (String.class.equals(type)) {
+            return Scalars.GraphQLString;
+        } else if (TypeEnum.class.isAssignableFrom(type)) {
+            return DslType.GraphQLTypeEnum;
+        } else if (Map.class.isAssignableFrom(type)) {
+            return DslType.GraphQLMap;
+        }
+
+        return DslType.GraphQLObject;
+    }
+
+    private Object[] buildArgs(Method method, DataFetchingEnvironment environment, List<String> argList) {
+        if (method.getParameterCount() == 0) {
+            return null;
+        }
+        Object[] args = new Object[method.getParameterCount()];
+        for (int i = 0; i < method.getParameterCount(); i++) {
+            Parameter parameter = method.getParameters()[i];
+            Object value = environment.getArgument(argList.get(i));
+            if (null == value) {
+                continue;
+            }
+
+            Class type = parameter.getType();
+            Object argValue = value;
+            if (Long.class.equals(type)) {
+                argValue = Long.parseLong(value + "");
+            } else if (Integer.class.equals(type)) {
+                argValue = Integer.parseInt(value + "");
+            } else if (String.class.equals(type)) {
+                argValue = value + "";
+            } else if (TypeEnum.class.isAssignableFrom(type)) {
+                Object targetValue = value;
+                if (value instanceof IntValue) {
+                    targetValue = Integer.parseInt(((IntValue) value).getValue().toString());
+                } else if (value instanceof StringValue) {
+                    targetValue = ((StringValue) value).getValue();
+                }
+                argValue = TypeEnum.from(targetValue, type);
+            } else if (LongList.class.equals(type)) {
+                if (value instanceof IntValue) {
+                    LongList list = new LongList();
+                    list.add(((IntValue) value).getValue().longValue());
+                    argValue = list;
+                }
+            } else {
+                Optional<ArgumentResolver> optional = resolvers().stream().filter(e -> e.support(type)).findFirst();
+                if (optional.isPresent()) {
+                    argValue = optional.get().resolve(type, value);
+                } else {
+                    argValue = processJson(type, value);
+                }
+            }
+
+            args[i] = argValue;
+        }
+
+        return args;
+    }
+
+    private Object processJson(Class type, Object value) {
+        if (value instanceof ObjectValue) {
+            ObjectValue objectValue = (ObjectValue) value;
+            List<ObjectField> objectFields = objectValue.getObjectFields();
+            Map<String, Object> valueMap = new HashMap<>(objectFields.size());
+            for (ObjectField objectField : objectFields) {
+                Object fieldValue = objectField.getValue();
+                Object javaTypeValue = fieldValue;
+                if (fieldValue instanceof BooleanValue) {
+                    javaTypeValue = ((BooleanValue) fieldValue).isValue();
+                } else if (fieldValue instanceof IntValue) {
+                    javaTypeValue = ((IntValue) fieldValue).getValue().intValue();
+                } else if (fieldValue instanceof StringValue) {
+                    javaTypeValue = ((StringValue) fieldValue).getValue();
+                } else if (fieldValue instanceof ArrayValue arrayValue) {
+                    javaTypeValue = processArray(arrayValue);
+                }
+                valueMap.put(objectField.getName(), javaTypeValue);
+            }
+            return JsonUtil.mapToBean(valueMap, type);
+        }
+
+        if (List.class.isAssignableFrom(type)) {
+            return JsonUtil.toList(JsonUtil.toJson(value), type);
+        } else {
+            if (Map.class.isAssignableFrom(value.getClass())) {
+                return JsonUtil.mapToBean((Map) value, type);
+            }
+            return JsonUtil.toBean(JsonUtil.toJson(value), type);
+        }
+    }
+
+    private Object processArray(ArrayValue arrayValue) {
+        if (Objects.isNull(arrayValue)) {
+            return null;
+        }
+        List<Value> values = arrayValue.getValues();
+        if (ValueUtil.isEmpty(values)) {
+            return null;
+        }
+        List<Object> list = new ArrayList<>();
+        for (Value value : values) {
+            if (value instanceof IntValue v) {
+                list.add(v.getValue().intValue());
+            } else if (value instanceof StringValue v) {
+                list.add(v.getValue());
+            } else {
+                list.add(value);
+            }
+        }
+        return list;
+    }
+
+    private Object doDataFetcher(DataFetchingEnvironment environment, Method executeMethod, Object instance, List<String> argList) throws InvocationTargetException, IllegalAccessException {
+        ContextUtil.set(new GraphQlContext(environment));
+        try {
+            return executeMethod.invoke(instance, buildArgs(executeMethod, environment, argList));
+        } finally {
+            ContextUtil.remove();
+        }
+
+    }
+}

@@ -1,0 +1,23 @@
+/**
+ * Copyright (C) Oceancode Cloud Technologies Co., Ltd. 2024-2024 .All Rights Reserved.
+ */
+
+package com.sys.designer.framework.common.list;
+
+import java.util.Collection;
+
+/**
+ * @author qinjiawang
+ */
+public class LongList extends WrapperArrayList<Long> {
+    public LongList() {
+    }
+
+    public LongList(Long element) {
+        add(element);
+    }
+
+    public LongList(Collection<Long> collection) {
+        addAll(collection);
+    }
+}

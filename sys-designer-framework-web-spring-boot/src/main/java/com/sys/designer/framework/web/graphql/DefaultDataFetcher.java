@@ -1,0 +1,44 @@
+package com.sys.designer.framework.web.graphql;
+
+import com.sys.designer.framework.common.util.SessionUtil;
+import graphql.schema.AsyncDataFetcher;
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+
+public class DefaultDataFetcher extends AsyncDataFetcher {
+    public DefaultDataFetcher(DataFetcher wrappedDataFetcher) {
+        super(wrappedDataFetcher);
+    }
+
+    public DefaultDataFetcher(DataFetcher wrappedDataFetcher, Executor executor) {
+        super(wrappedDataFetcher, executor);
+    }
+
+    @Override
+    public CompletableFuture get(DataFetchingEnvironment environment) {
+        List<Object> values = SessionUtil.getValues();
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                SessionUtil.setValues(values);
+                RequestContextHolder.setRequestAttributes(requestAttributes);
+                return getWrappedDataFetcher().get(environment);
+            } catch (Exception e) {
+                if (e instanceof RuntimeException) {
+                    throw (RuntimeException) e;
+                } else {
+                    throw new RuntimeException(e);
+                }
+            } finally {
+                SessionUtil.remove();
+                RequestContextHolder.resetRequestAttributes();
+            }
+        }, getExecutor());
+    }
+}

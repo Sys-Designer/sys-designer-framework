@@ -1,0 +1,23 @@
+/**
+ * Copyright (C) Oceancode Cloud Technologies Co., Ltd. 2024-2024 .All Rights Reserved.
+ */
+
+package com.sys.designer.framework.common.list;
+
+import java.util.Collection;
+
+/**
+ * @author qinjiawang
+ */
+public class StringList extends WrapperArrayList<String> {
+    public StringList() {
+    }
+
+    public StringList(String element) {
+        add(element);
+    }
+
+    public StringList(Collection<String> collection) {
+        addAll(collection);
+    }
+}

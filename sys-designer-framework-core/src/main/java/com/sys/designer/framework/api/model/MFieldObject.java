@@ -1,0 +1,16 @@
+package com.sys.designer.framework.api.model;
+
+import java.util.Collections;
+import java.util.Set;
+
+public interface MFieldObject extends MObject {
+    String modelId();
+
+    String field();
+
+    String refModelId();
+
+    default Set<String> tags() {
+        return Collections.emptySet();
+    }
+}
