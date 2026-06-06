@@ -7,6 +7,7 @@ import com.sys.designer.framework.api.permission.PermissionConst;
 import com.sys.designer.framework.autoconfig.AutoConfigService;
 import com.sys.designer.framework.common.constant.CommonConst;
 import com.sys.designer.framework.common.entity.ResultData;
+import com.sys.designer.framework.common.exception.ErrorCodeRuntimeException;
 import com.sys.designer.framework.web.security.EncryptResponse;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,7 +29,17 @@ public class AutoConfigController {
     @PostMapping("/autoConfig")
     @EncryptResponse
     public ResultData<?> autoConfig(@RequestBody AutoConfigRequest autoConfigRequest) {
-        AutoConfigResponse result = autoConfigService.autoConfig(autoConfigRequest);
-        return ResultData.isOk(result);
+        try {
+            AutoConfigResponse result = autoConfigService.autoConfig(autoConfigRequest);
+            return ResultData.isOk(result);
+        } catch (Exception e) {
+            if (e instanceof ErrorCodeRuntimeException ex) {
+                ResultData<Object> resultData = ResultData.isFail();
+                resultData.setCode(ex.getErrorCode());
+                resultData.setMessage(ex.getMessage());
+                return resultData;
+            }
+        }
+        return ResultData.isFail();
     }
 }

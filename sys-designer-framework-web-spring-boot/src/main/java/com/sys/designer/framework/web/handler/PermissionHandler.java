@@ -12,11 +12,10 @@ import com.sys.designer.framework.api.session.SessionService;
 import com.sys.designer.framework.api.session.UserBaseInfo;
 import com.sys.designer.framework.api.session.UserType;
 import com.sys.designer.framework.common.config.CommonConfig;
-import com.sys.designer.framework.common.entity.ResultData;
 import com.sys.designer.framework.common.errorcode.CommonErrorCode;
 import com.sys.designer.framework.common.exception.BusinessRuntimeException;
+import com.sys.designer.framework.common.exception.ErrorCodeRuntimeException;
 import com.sys.designer.framework.common.util.ComponentUtil;
-import com.sys.designer.framework.common.util.JsonUtil;
 import com.sys.designer.framework.common.util.PermissionUtil;
 import com.sys.designer.framework.common.util.SessionUtil;
 import com.sys.designer.framework.common.util.ValueUtil;
@@ -113,6 +112,9 @@ public class PermissionHandler implements ApplicationLifeCycleService {
             try {
                 proceed = proceedingJoinPoint.proceed();
             } catch (Throwable e) {
+                if (e instanceof ErrorCodeRuntimeException exception) {
+                    throw exception;
+                }
                 throw new BusinessRuntimeException(CommonErrorCode.SERVER_ERROR, e);
             } finally {
                 if (Objects.nonNull(functionInterceptor)) {

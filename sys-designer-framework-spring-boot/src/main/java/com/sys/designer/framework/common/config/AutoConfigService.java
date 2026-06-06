@@ -11,6 +11,7 @@ import com.sys.designer.framework.api.mq.Producer;
 import com.sys.designer.framework.api.security.AesCryptoService;
 import com.sys.designer.framework.api.security.Rsa2CryptoService;
 import com.sys.designer.framework.common.cache.LockServiceImpl;
+import com.sys.designer.framework.common.cache.caffeine.CaffeineLockServiceImpl;
 import com.sys.designer.framework.common.cache.redis.RedisLockServiceImpl;
 import com.sys.designer.framework.common.express.ExpressEnginManager;
 import com.sys.designer.framework.common.id.RedisIncrementIdGenerator;
@@ -86,6 +87,13 @@ public class AutoConfigService {
     @ConditionalOnBean(RedisCacheService.class)
     public LockService redisLock() {
         return new RedisLockServiceImpl();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(LockService.class)
+    @ConditionalOnBean(LocalCacheService.class)
+    public LockService localLock() {
+        return new CaffeineLockServiceImpl();
     }
 
     @Bean
