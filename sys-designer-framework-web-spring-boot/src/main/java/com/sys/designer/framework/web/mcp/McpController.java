@@ -6,6 +6,7 @@ import com.sys.designer.framework.common.constant.CommonConst;
 import com.sys.designer.framework.common.util.JsonUtil;
 import com.sys.designer.framework.common.util.PermissionUtil;
 import com.sys.designer.framework.common.util.SessionUtil;
+import com.sys.designer.framework.common.util.ValueUtil;
 import com.sys.designer.framework.entity.Tuple2;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -31,7 +32,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -73,6 +73,7 @@ public class McpController {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<?> streamableHttp(
+            HttpServletRequest servletRequest,
             @RequestBody Object body,
             @RequestHeader(value = MCP_SESSION_ID_HEADER, required = false) String mcpSessionId) {
 
@@ -104,7 +105,10 @@ public class McpController {
             return ResponseEntity.status(HttpStatus.ACCEPTED).build();
         }
 
-        String sessionId = resolveStreamableSession(requests, mcpSessionId);
+        String sessionId = resolveStreamableSession(servletRequest, requests, mcpSessionId);
+        if (ValueUtil.isEmpty(sessionId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("PRIVATE-TOKEN not found.");
+        }
         if (INVALID_SESSION_MARKER.equals(sessionId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
@@ -192,7 +196,7 @@ public class McpController {
 
     @CrossOrigin
     @GetMapping(value = "/mcp/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter legacySse() {
+    public SseEmitter legacySse(HttpServletRequest request) {
         SseEmitter emitter = new SseEmitter(0L);
         if (!checkMcpToken("mcp", "mcp_message")) {
             emitter.complete();
@@ -207,7 +211,15 @@ public class McpController {
             return emitter;
         }
 
-        String sessionId = UUID.randomUUID().toString();
+        String sessionId = request.getHeader(CommonConst.PRIVATE_TOKEN);
+        Tuple2<SseEmitter, Long> item = LEGACY_SESSION_MAP.get(sessionId);
+        if (Objects.nonNull(item) && Objects.nonNull(item.getFirst())) {
+            try {
+                item.getFirst().complete();
+            } catch (Exception e) {
+                LOGGER.error("close sse error", e);
+            }
+        }
         LEGACY_SESSION_MAP.put(sessionId, new Tuple2<>(emitter, userId));
         Runnable cleanup = () -> LEGACY_SESSION_MAP.remove(sessionId);
         emitter.onCompletion(cleanup);
@@ -274,13 +286,20 @@ public class McpController {
 
     // ======================== Helpers ========================
 
-    private String resolveStreamableSession(List<JsonRpcRequest> requests, String headerSessionId) {
+    private String resolveStreamableSession(HttpServletRequest request, List<JsonRpcRequest> requests, String headerSessionId) {
         boolean initializing = requests.stream()
                 .anyMatch(r -> METHOD_INITIALIZE.equalsIgnoreCase(r.method()));
         Long userId = SessionUtil.userId();
 
         if (initializing) {
-            String sessionId = UUID.randomUUID().toString();
+            String sessionId = request.getHeader(CommonConst.PRIVATE_TOKEN);
+            if (ValueUtil.isEmpty(sessionId)) {
+                return sessionId;
+            }
+            Tuple2<SseEmitter, Long> target = STREAMABLE_SESSION_MAP.get(sessionId);
+            if (Objects.nonNull(target) && Objects.nonNull(target.getFirst())) {
+                target.getFirst().complete();
+            }
             STREAMABLE_SESSION_MAP.put(sessionId, new Tuple2<>(null, userId));
             LOGGER.info("MCP session created: {}", sessionId);
             return sessionId;
