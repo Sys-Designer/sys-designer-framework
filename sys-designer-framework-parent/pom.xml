@@ -61,7 +61,7 @@
             <dependency>
                 <groupId>com.sys-designer</groupId>
                 <artifactId>sys-designer-framework-core</artifactId>
-                <version>${sys-designer-framework.version}</version>
+                <version>1.0.1</version>
             </dependency>
 
             <dependency>
