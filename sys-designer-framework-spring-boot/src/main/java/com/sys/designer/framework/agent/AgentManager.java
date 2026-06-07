@@ -44,7 +44,11 @@ public class AgentManager {
     }
 
     public void sendToAgent(String id, Object data) {
-        Consumer<Object> consumer = clientSender.get(id);
+        Agent agent = getAgent(id);
+        if (Objects.isNull(agent)) {
+            return;
+        }
+        Consumer<Object> consumer = clientSender.get(agent.getName());
         if (Objects.isNull(consumer)) {
             return;
         }
