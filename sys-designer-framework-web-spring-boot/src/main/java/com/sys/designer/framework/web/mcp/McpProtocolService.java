@@ -3,7 +3,7 @@ package com.sys.designer.framework.web.mcp;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sys.designer.framework.agent.AgentManager;
 import com.sys.designer.framework.api.ErrorCode;
-import com.sys.designer.framework.api.agent.Agent;
+import com.sys.designer.framework.api.tool.GlobalRuleLoader;
 import com.sys.designer.framework.api.tool.ToolLoader;
 import com.sys.designer.framework.api.tool.ToolManager;
 import com.sys.designer.framework.common.exception.BusinessRuntimeException;
@@ -40,6 +40,8 @@ public class McpProtocolService {
     private ToolManager toolManager;
     @Autowired(required = false)
     private AgentManager agentManager;
+    @Autowired(required = false)
+    private GlobalRuleLoader globalRuleLoader;
     private final static Logger LOGGER = LoggerFactory.getLogger(McpProtocolService.class);
 
     public McpProtocolService(ToolManager toolManager) {
@@ -100,6 +102,10 @@ public class McpProtocolService {
         result.put("protocolVersion", protocolVersion);
         result.put("capabilities", Map.of("tools", Map.of())); // 声明支持工具
         result.put("serverInfo", Map.of("name", name, "version", version));
+        if (Objects.nonNull(globalRuleLoader)) {
+            result.put("instructions", globalRuleLoader.load());
+        }
+
         return JsonRpcResponse.success(request.id(), result);
     }
 

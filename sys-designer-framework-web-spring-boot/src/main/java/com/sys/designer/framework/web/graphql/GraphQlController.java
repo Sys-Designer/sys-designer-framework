@@ -1,10 +1,12 @@
 package com.sys.designer.framework.web.graphql;
 
 import com.sys.designer.framework.common.constant.CommonConst;
+import com.sys.designer.framework.function.QueryFunction;
 import com.sys.designer.framework.web.security.EncryptResponse;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(CommonConst.API_PREFIX)
+@ConditionalOnBean(QueryFunction.class)
 public class GraphQlController {
     private GraphQL graphQL;
 
