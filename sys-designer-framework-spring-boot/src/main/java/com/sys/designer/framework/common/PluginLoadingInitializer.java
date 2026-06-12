@@ -75,7 +75,9 @@ public class PluginLoadingInitializer implements ApplicationContextInitializer<C
                     className = className.substring(0, className.lastIndexOf("."));
                     Class<?> clazz = loader.loadClass(className);
                     if (clazz.getInterfaces().length == 0 || !Plugin.class.isAssignableFrom(clazz)) {
-                        continue;
+                        if (!SimplePlugin.class.isAssignableFrom(clazz)) {
+                            continue;
+                        }
                     }
                     Class<?> it = clazz;
                     if (!SimplePlugin.class.isAssignableFrom(clazz)) {
