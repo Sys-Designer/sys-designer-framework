@@ -11,6 +11,7 @@ import com.sys.designer.framework.entity.Tuple2;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -59,6 +60,9 @@ public class McpController {
     private final McpProtocolService mcpProtocolService;
     private final ToolManager toolManager;
 
+    @Value("oc.mcp.timeout:0")
+    private Long sseTimeout;
+
     public McpController(McpProtocolService mcpProtocolService, ToolManager toolManager) {
         this.mcpProtocolService = mcpProtocolService;
         this.toolManager = toolManager;
@@ -98,7 +102,6 @@ public class McpController {
         }
 
         for (JsonRpcRequest notification : notifications) {
-            LOGGER.info("MCP notification method={}", notification.method());
             mcpProtocolService.handler(notification);
         }
         if (requests.isEmpty()) {
@@ -115,10 +118,8 @@ public class McpController {
 
         List<Object> results = new ArrayList<>();
         for (JsonRpcRequest request : requests) {
-            LOGGER.info("MCP request method={}, id={}", request.method(), request.id());
             Object res = mcpProtocolService.handler(sessionId, request);
             if (res == null) {
-                LOGGER.error("handler returned null for method={}", request.method());
                 res = JsonRpcResponse.error(request.id(), -32603, "empty handler response");
             }
             results.add(res);
@@ -129,7 +130,7 @@ public class McpController {
             builder.header(MCP_SESSION_ID_HEADER, sessionId);
         }
         if (results.size() == 1) {
-            return builder.body(results.get(0));
+            return builder.body(results.getFirst());
         }
         return builder.body(results);
     }
@@ -145,7 +146,7 @@ public class McpController {
             return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build();
         }
         if (!checkMcpToken("mcp")) {
-            SseEmitter denied = new SseEmitter(0L);
+            SseEmitter denied = new SseEmitter(sseTimeout);
             denied.complete();
             return denied;
         }
@@ -159,7 +160,16 @@ public class McpController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
-        SseEmitter emitter = new SseEmitter(0L);
+        SseEmitter emitter = new SseEmitter(sseTimeout);
+        Tuple2<SseEmitter, Long> temp = STREAMABLE_SESSION_MAP.get(mcpSessionId);
+        if (Objects.nonNull(temp) && Objects.nonNull(temp.getFirst())) {
+            try {
+                SseEmitter first = temp.getFirst();
+                first.complete();
+            } catch (Exception e) {
+                // ignore
+            }
+        }
         STREAMABLE_SESSION_MAP.put(mcpSessionId, new Tuple2<>(emitter, userId));
         Runnable cleanup = () -> removeStreamableEmitter(mcpSessionId, emitter);
         emitter.onCompletion(cleanup);
@@ -197,7 +207,7 @@ public class McpController {
     @CrossOrigin
     @GetMapping(value = "/mcp/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter legacySse(HttpServletRequest request) {
-        SseEmitter emitter = new SseEmitter(0L);
+        SseEmitter emitter = new SseEmitter(sseTimeout);
         if (!checkMcpToken("mcp", "mcp_message")) {
             emitter.complete();
             return emitter;
@@ -285,7 +295,6 @@ public class McpController {
     }
 
     // ======================== Helpers ========================
-
     private String resolveStreamableSession(HttpServletRequest request, List<JsonRpcRequest> requests, String headerSessionId) {
         boolean initializing = requests.stream()
                 .anyMatch(r -> METHOD_INITIALIZE.equalsIgnoreCase(r.method()));

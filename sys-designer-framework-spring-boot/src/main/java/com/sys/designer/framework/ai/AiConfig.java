@@ -19,7 +19,6 @@ public class AiConfig {
     @Bean
     @Primary
     public ChatClient mainChatClient(OpenAiChatModel chatModel, List<ToolCallback> callbacks) {
-        // https://blog.csdn.net/qq_39805994/article/details/160009661
         return ChatClient
                 .builder(chatModel)
                 .defaultToolCallbacks(callbacks)

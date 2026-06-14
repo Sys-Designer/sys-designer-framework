@@ -16,7 +16,10 @@ import com.sys.designer.framework.common.util.SessionUtil;
 import com.sys.designer.framework.common.util.ValueUtil;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.server.standard.ServerEndpointExporter;
 
 import java.util.Objects;
 import java.util.Set;

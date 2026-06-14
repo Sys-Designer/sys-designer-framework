@@ -10,8 +10,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.util.Random;
-
+import java.security.SecureRandom;
 
 public class AesCrypto implements AesCryptoService {
     @Override
@@ -64,7 +63,7 @@ public class AesCrypto implements AesCryptoService {
     public String generatorKey() {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         StringBuilder key = new StringBuilder();
-        Random random = new Random();
+        SecureRandom random = new SecureRandom();
         for (int i = 0; i < 16; i++) {
             key.append(chars.charAt(random.nextInt(chars.length())));
         }
@@ -74,7 +73,7 @@ public class AesCrypto implements AesCryptoService {
     public String generatorIv() {
         String chars = "0123456789abcdef";
         StringBuilder key = new StringBuilder();
-        Random random = new Random();
+        SecureRandom random = new SecureRandom();
         for (int i = 0; i < 16; i++) {
             key.append(chars.charAt(random.nextInt(chars.length())));
         }

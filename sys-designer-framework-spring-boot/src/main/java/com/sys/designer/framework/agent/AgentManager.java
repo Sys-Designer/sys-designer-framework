@@ -14,8 +14,8 @@ import java.util.function.Consumer;
 
 @Component
 public class AgentManager {
-    private Map<String, Agent> map;
-    private Map<String, Consumer<Object>> clientSender = new ConcurrentHashMap<>();
+    private final Map<String, Agent> map;
+    private final Map<String, Consumer<Object>> clientSender = new ConcurrentHashMap<>();
 
     public AgentManager(Set<Agent> agents) {
         if (agents.isEmpty()) {

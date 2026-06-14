@@ -1,13 +1,9 @@
 package com.sys.designer.framework.web.graphql.resolver;
 
 import com.sys.designer.framework.api.TypeEnum;
-import com.sys.designer.framework.common.list.StringList;
 import com.sys.designer.framework.function.ArgumentResolver;
 import graphql.language.*;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.Objects;
 
 @Component
 public class TypeEnumArgumentResolver implements ArgumentResolver {
