@@ -60,7 +60,7 @@ public class McpController {
     private final McpProtocolService mcpProtocolService;
     private final ToolManager toolManager;
 
-    @Value("oc.mcp.timeout:0")
+    @Value("${oc.mcp.timeout:0}")
     private Long sseTimeout;
 
     public McpController(McpProtocolService mcpProtocolService, ToolManager toolManager) {
