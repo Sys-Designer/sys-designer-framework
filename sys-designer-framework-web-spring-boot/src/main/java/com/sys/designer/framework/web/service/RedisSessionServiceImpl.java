@@ -57,7 +57,12 @@ public class RedisSessionServiceImpl implements SessionService {
 
     @Override
     public UserBaseInfo getUserInfo(String token) {
-        TokenInfo tokenInfo = TokenUtil.parseToken(token);
+        TokenInfo tokenInfo = null;
+        try {
+            tokenInfo = TokenUtil.parseToken(token);
+        } catch (Exception e) {
+            return null;
+        }
         if (Objects.isNull(tokenInfo)) {
             return null;
         }

@@ -46,6 +46,10 @@ public final class TokenUtil {
     }
 
     public static TokenInfo createToken(Long userId, String openid) {
+        return createToken(null, userId, openid);
+    }
+
+    public static TokenInfo createToken(String deviceId, Long userId, String openid) {
         TokenGenerator generator = tokenGenerator();
         if (Objects.nonNull(generator)) {
             return generator.get(userId, openid);
@@ -57,7 +61,13 @@ public final class TokenUtil {
         if (ValueUtil.isNotEmpty(openid)) {
             uid = "o" + openid;
         }
-        String deviceUid = getShortMd5Str(getDeviceUid() + uid);
+        String deviceUid;
+        if (ValueUtil.isNotEmpty(deviceId)) {
+            deviceUid = deviceId;
+            uid = "c" + userId;
+        } else {
+            deviceUid = getShortMd5Str(getDeviceUid() + uid);
+        }
         String token = null;
         String sessionId = UUID.randomUUID().toString().replace("-", "");
         if (isToken()) {
@@ -196,12 +206,20 @@ public final class TokenUtil {
             if (ValueUtil.isEmpty(s3C)) {
                 throw new BusinessRuntimeException(CommonErrorCode.AUTHORIZATION_INVALID);
             }
-            String deviceUid = getShortMd5Str(getDeviceUid() + s3);
-            if (!strs[0].equals(deviceUid)) {
-                throw new BusinessRuntimeException(CommonErrorCode.AUTHORIZATION_INVALID);
-            }
+            String deviceUid;
             TokenInfo tokenInfo = new TokenInfo();
-            tokenInfo.setUserId(null);
+            if (s3.startsWith("c")) {
+                deviceUid = strs[0];
+                tokenInfo.setDeviceId(deviceUid);
+                tokenInfo.setUserId(Long.parseLong(s3C));
+            } else {
+                deviceUid = getShortMd5Str(getDeviceUid() + s3);
+                if (!strs[0].equals(deviceUid)) {
+                    throw new BusinessRuntimeException(CommonErrorCode.AUTHORIZATION_INVALID);
+                }
+                tokenInfo.setUserId(null);
+            }
+
             tokenInfo.setToken(strs[1]);
             tokenInfo.setSessionId(strs[1]);
             if (s3.startsWith("o")) {

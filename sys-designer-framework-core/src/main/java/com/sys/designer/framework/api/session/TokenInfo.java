@@ -12,6 +12,7 @@ public class TokenInfo {
 
     private String token;
 
+    private String deviceId;
     public Long getUserId() {
         return userId;
     }
@@ -42,5 +43,13 @@ public class TokenInfo {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public String getDeviceId() {
+        return deviceId;
+    }
+
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
     }
 }
