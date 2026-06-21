@@ -153,6 +153,7 @@ public class RedisSessionServiceImpl implements SessionService {
         if (Objects.nonNull(userInfo.getData())) {
             map.putAll(userInfo.getData());
         }
+        map.put("roles", userInfo.roles());
         if (ValueUtil.isNotEmpty(userInfo.getOpenid())) {
             map.put("openid", userInfo.getOpenid());
         } else {
@@ -180,6 +181,9 @@ public class RedisSessionServiceImpl implements SessionService {
         Map<String, Object> map = new HashMap<>();
         if (Objects.nonNull(userInfo.getData())) {
             map.putAll(userInfo.getData());
+        }
+        if (ValueUtil.isNotEmpty(userInfo.roles())) {
+            map.put("roles", userInfo.roles());
         }
         if (ValueUtil.isNotEmpty(userInfo.getOpenid())) {
             map.put("openid", userInfo.getOpenid());
