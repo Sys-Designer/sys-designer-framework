@@ -162,6 +162,8 @@ public class McpProtocolService {
             result = toolManager.execute(name, arguments);
             data.put("results", result);
         } catch (Exception e) {
+            errorCode = -32600;
+            LOGGER.error("error", e);
             if (e instanceof BusinessRuntimeException runtimeException) {
                 ErrorCode code = runtimeException.getCode();
                 if (Objects.nonNull(code)) {

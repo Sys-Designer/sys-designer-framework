@@ -10,7 +10,8 @@ public enum RoleType implements TypeEnum<String> {
     ADMIN("admin", "管理员", ""),
     GUEST("guest", "游客", ""),
     SUPER_ADMIN("super_admin", "超级管理员", ""),
-    CUSTOM("custom", "自定义", null);
+    CUSTOM("custom", "自定义", null),
+    DEMO("demo", "Demo账号", "只能查询");
     private String value;
     private String name;
     private String description;

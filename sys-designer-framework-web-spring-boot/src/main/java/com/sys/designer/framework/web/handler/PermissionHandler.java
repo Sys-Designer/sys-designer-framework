@@ -157,13 +157,17 @@ public class PermissionHandler implements ApplicationLifeCycleService {
         if (Objects.isNull(authorities)) {
             return;
         }
-        Set<String> roles = SessionUtil.getUserInfo().roles();
         int resourceType = permission.resourceType();
-        Set<String> permissions = new HashSet<>(roles);
+        Set<String> permissions = new HashSet<>();
         if (Objects.nonNull(PermissionUtil.getPermissionResourceService())) {
             Set<String> list = PermissionUtil.getPermissionResourceService().getPermissions(permission.resourceId(), permission.resourceType());
             permissions.addAll(list);
         }
+        if (Objects.nonNull(SessionUtil.getUserInfo())) {
+            Set<String> roles = SessionUtil.getUserInfo().roles();
+            permissions.addAll(roles);
+        }
+
         for (String authority : authorities) {
             boolean matched = permissions.contains(authority);
             if (!matched && isGlobal) {
