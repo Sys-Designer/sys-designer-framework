@@ -29,16 +29,22 @@ public class UserBaseInfo {
     public Set<String> roles() {
         if (Objects.isNull(roles)) {
             if (Objects.isNull(data)) {
-                return Collections.emptySet();
-            }
-            Object o = data.get("roles");
-            if (o instanceof List list) {
-                roles = new HashSet<>(list);
-            } else if (o instanceof Set set) {
-                roles = new HashSet<>(set);
+                roles = new HashSet<>();
             } else {
-                roles = Collections.emptySet();
+                Object o = data.get("roles");
+                if (o instanceof List list) {
+                    roles = new HashSet<>(list);
+                } else if (o instanceof Set set) {
+                    roles = new HashSet<>(set);
+                } else {
+                    roles = new HashSet<>();
+                }
             }
+
+            if (ValueUtil.isNotEmpty(role())) {
+                roles.add(role().getValue());
+            }
+
         }
         return roles;
     }

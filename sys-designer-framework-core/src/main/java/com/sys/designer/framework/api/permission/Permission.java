@@ -13,4 +13,10 @@ public @interface Permission {
     String[] authorities();
 
     int resourceType() default PermissionConst.RESOURCE_TYPE_ANY;
+
+    boolean isFunction() default false;
+
+    boolean enableProjectId() default false;
+
+    boolean enableTenantId() default false;
 }

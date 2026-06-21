@@ -87,5 +87,7 @@ public final class PermissionUtil {
         return matchCount == authorities.length;
     }
 
-
+    public static PermissionResourceService getPermissionResourceService() {
+        return permissionResourceService;
+    }
 }

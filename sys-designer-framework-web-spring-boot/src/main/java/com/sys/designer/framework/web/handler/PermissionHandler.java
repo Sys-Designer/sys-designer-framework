@@ -33,7 +33,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 @Aspect
 @Component
@@ -94,19 +96,26 @@ public class PermissionHandler implements ApplicationLifeCycleService {
     }
 
     private Object processDoPermissionCheck(Permission permission, ProceedingJoinPoint proceedingJoinPoint) {
-        String token = ApiUtil.getToken();
-        if (sessionService.isLogin(token)) {
-            if (Objects.isNull(SessionUtil.getUserInfo())) {
-                SessionUtil.setUserinfo(sessionService.getUserInfo(token));
+        boolean ret = false;
+        if (permission.isFunction()) {
+            doCheckFunctionPermission(permission);
+            ret = true;
+        } else {
+            String token = ApiUtil.getToken();
+            if (sessionService.isLogin(token)) {
+                if (Objects.isNull(SessionUtil.getUserInfo())) {
+                    SessionUtil.setUserinfo(sessionService.getUserInfo(token));
+                }
+            }
+            if (Objects.nonNull(functionInterceptor)) {
+                functionInterceptor.before(permission.resourceId(), permission.resourceType());
+            }
+            ret = doCheckPermission(permission) && PermissionUtil.checkCustomPermission(permission);
+            if (!ret) {
+                ret = PermissionUtil.checkPrivateToken(permission);
             }
         }
-        if (Objects.nonNull(functionInterceptor)) {
-            functionInterceptor.before(permission.resourceId(), permission.resourceType());
-        }
-        boolean ret = doCheckPermission(permission) && PermissionUtil.checkCustomPermission(permission);
-        if (!ret) {
-            ret = PermissionUtil.checkPrivateToken(permission);
-        }
+
         if (ret) {
             Object proceed = null;
             try {
@@ -125,6 +134,70 @@ public class PermissionHandler implements ApplicationLifeCycleService {
         } else {
             throw new BusinessRuntimeException(CommonErrorCode.PERMISSION_DENIED);
         }
+    }
+
+    private void doCheckFunctionPermission(Permission permission) {
+        boolean isGlobal = true;
+        if (Objects.isNull(SessionUtil.userId())) {
+            throw new BusinessRuntimeException(CommonErrorCode.PERMISSION_DENIED);
+        }
+        if (permission.enableProjectId()) {
+            if (Objects.isNull(SessionUtil.projectId())) {
+                throw new BusinessRuntimeException(CommonErrorCode.PERMISSION_DENIED);
+            }
+            isGlobal = false;
+        }
+        if (permission.enableTenantId()) {
+            if (Objects.isNull(SessionUtil.tenantId())) {
+                throw new BusinessRuntimeException(CommonErrorCode.PERMISSION_DENIED);
+            }
+            isGlobal = false;
+        }
+        String[] authorities = permission.authorities();
+        if (Objects.isNull(authorities)) {
+            return;
+        }
+        Set<String> roles = SessionUtil.getUserInfo().roles();
+        int resourceType = permission.resourceType();
+        Set<String> permissions = new HashSet<>(roles);
+        if (Objects.nonNull(PermissionUtil.getPermissionResourceService())) {
+            Set<String> list = PermissionUtil.getPermissionResourceService().getPermissions(permission.resourceId(), permission.resourceType());
+            permissions.addAll(list);
+        }
+        for (String authority : authorities) {
+            boolean matched = permissions.contains(authority);
+            if (!matched && isGlobal) {
+                if (resourceType == PermissionConst.RESOURCE_TYPE_DELETE) {
+                    matched = hasDeletePermission(authority, permissions);
+                }
+            }
+
+            if (!matched) {
+                throw new BusinessRuntimeException(CommonErrorCode.PERMISSION_DENIED);
+            }
+        }
+    }
+
+    private boolean hasDeletePermission(String authority, Set<String> roles) {
+        if (roles.isEmpty()) {
+            return false;
+        }
+        if (roles.contains(authority)) {
+            return true;
+        }
+        if (roles.contains(RoleType.DEVELOPER.getValue())) {
+            return true;
+        }
+        if (roles.contains(RoleType.ADMIN.getValue())) {
+            return true;
+        }
+        if (roles.contains(RoleType.CREATOR.getValue())) {
+            return true;
+        }
+        if (roles.contains(RoleType.SUPER_ADMIN.getValue())) {
+            return true;
+        }
+        return false;
     }
 
     private boolean doCheckPermission(Permission permission) {
