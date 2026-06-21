@@ -12,7 +12,7 @@
 
     <groupId>com.sys-designer</groupId>
     <artifactId>sys-designer-framework-web-spring-boot</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.2</version>
 
     <name>sys-designer-framework-web-spring-boot</name>
     <description>Sys-Designer Framework Web SpringBoot</description>
