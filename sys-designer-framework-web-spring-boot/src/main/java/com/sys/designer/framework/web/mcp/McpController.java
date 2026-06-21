@@ -6,10 +6,12 @@ import com.sys.designer.framework.common.constant.CommonConst;
 import com.sys.designer.framework.common.util.JsonUtil;
 import com.sys.designer.framework.common.util.PermissionUtil;
 import com.sys.designer.framework.common.util.SessionUtil;
+import com.sys.designer.framework.common.util.ValueUtil;
 import com.sys.designer.framework.entity.Tuple2;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -31,7 +33,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -59,6 +60,9 @@ public class McpController {
     private final McpProtocolService mcpProtocolService;
     private final ToolManager toolManager;
 
+    @Value("${oc.mcp.timeout:0}")
+    private Long sseTimeout;
+
     public McpController(McpProtocolService mcpProtocolService, ToolManager toolManager) {
         this.mcpProtocolService = mcpProtocolService;
         this.toolManager = toolManager;
@@ -73,6 +77,7 @@ public class McpController {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<?> streamableHttp(
+            HttpServletRequest servletRequest,
             @RequestBody Object body,
             @RequestHeader(value = MCP_SESSION_ID_HEADER, required = false) String mcpSessionId) {
 
@@ -97,24 +102,24 @@ public class McpController {
         }
 
         for (JsonRpcRequest notification : notifications) {
-            LOGGER.info("MCP notification method={}", notification.method());
             mcpProtocolService.handler(notification);
         }
         if (requests.isEmpty()) {
             return ResponseEntity.status(HttpStatus.ACCEPTED).build();
         }
 
-        String sessionId = resolveStreamableSession(requests, mcpSessionId);
+        String sessionId = resolveStreamableSession(servletRequest, requests, mcpSessionId);
+        if (ValueUtil.isEmpty(sessionId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("PRIVATE-TOKEN not found.");
+        }
         if (INVALID_SESSION_MARKER.equals(sessionId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
         List<Object> results = new ArrayList<>();
         for (JsonRpcRequest request : requests) {
-            LOGGER.info("MCP request method={}, id={}", request.method(), request.id());
             Object res = mcpProtocolService.handler(sessionId, request);
             if (res == null) {
-                LOGGER.error("handler returned null for method={}", request.method());
                 res = JsonRpcResponse.error(request.id(), -32603, "empty handler response");
             }
             results.add(res);
@@ -125,7 +130,7 @@ public class McpController {
             builder.header(MCP_SESSION_ID_HEADER, sessionId);
         }
         if (results.size() == 1) {
-            return builder.body(results.get(0));
+            return builder.body(results.getFirst());
         }
         return builder.body(results);
     }
@@ -141,7 +146,7 @@ public class McpController {
             return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build();
         }
         if (!checkMcpToken("mcp")) {
-            SseEmitter denied = new SseEmitter(0L);
+            SseEmitter denied = new SseEmitter(sseTimeout);
             denied.complete();
             return denied;
         }
@@ -155,7 +160,16 @@ public class McpController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
-        SseEmitter emitter = new SseEmitter(0L);
+        SseEmitter emitter = new SseEmitter(sseTimeout);
+        Tuple2<SseEmitter, Long> temp = STREAMABLE_SESSION_MAP.get(mcpSessionId);
+        if (Objects.nonNull(temp) && Objects.nonNull(temp.getFirst())) {
+            try {
+                SseEmitter first = temp.getFirst();
+                first.complete();
+            } catch (Exception e) {
+                // ignore
+            }
+        }
         STREAMABLE_SESSION_MAP.put(mcpSessionId, new Tuple2<>(emitter, userId));
         Runnable cleanup = () -> removeStreamableEmitter(mcpSessionId, emitter);
         emitter.onCompletion(cleanup);
@@ -192,8 +206,8 @@ public class McpController {
 
     @CrossOrigin
     @GetMapping(value = "/mcp/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter legacySse() {
-        SseEmitter emitter = new SseEmitter(0L);
+    public SseEmitter legacySse(HttpServletRequest request) {
+        SseEmitter emitter = new SseEmitter(sseTimeout);
         if (!checkMcpToken("mcp", "mcp_message")) {
             emitter.complete();
             return emitter;
@@ -207,7 +221,15 @@ public class McpController {
             return emitter;
         }
 
-        String sessionId = UUID.randomUUID().toString();
+        String sessionId = request.getHeader(CommonConst.PRIVATE_TOKEN);
+        Tuple2<SseEmitter, Long> item = LEGACY_SESSION_MAP.get(sessionId);
+        if (Objects.nonNull(item) && Objects.nonNull(item.getFirst())) {
+            try {
+                item.getFirst().complete();
+            } catch (Exception e) {
+                LOGGER.error("close sse error", e);
+            }
+        }
         LEGACY_SESSION_MAP.put(sessionId, new Tuple2<>(emitter, userId));
         Runnable cleanup = () -> LEGACY_SESSION_MAP.remove(sessionId);
         emitter.onCompletion(cleanup);
@@ -273,14 +295,20 @@ public class McpController {
     }
 
     // ======================== Helpers ========================
-
-    private String resolveStreamableSession(List<JsonRpcRequest> requests, String headerSessionId) {
+    private String resolveStreamableSession(HttpServletRequest request, List<JsonRpcRequest> requests, String headerSessionId) {
         boolean initializing = requests.stream()
                 .anyMatch(r -> METHOD_INITIALIZE.equalsIgnoreCase(r.method()));
         Long userId = SessionUtil.userId();
 
         if (initializing) {
-            String sessionId = UUID.randomUUID().toString();
+            String sessionId = request.getHeader(CommonConst.PRIVATE_TOKEN);
+            if (ValueUtil.isEmpty(sessionId)) {
+                return sessionId;
+            }
+            Tuple2<SseEmitter, Long> target = STREAMABLE_SESSION_MAP.get(sessionId);
+            if (Objects.nonNull(target) && Objects.nonNull(target.getFirst())) {
+                target.getFirst().complete();
+            }
             STREAMABLE_SESSION_MAP.put(sessionId, new Tuple2<>(null, userId));
             LOGGER.info("MCP session created: {}", sessionId);
             return sessionId;

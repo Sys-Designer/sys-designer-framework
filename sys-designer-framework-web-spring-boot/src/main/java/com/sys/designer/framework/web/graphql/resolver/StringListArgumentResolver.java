@@ -1,8 +1,5 @@
 package com.sys.designer.framework.web.graphql.resolver;
 
-import com.sys.designer.framework.common.errorcode.CommonErrorCode;
-import com.sys.designer.framework.common.exception.BusinessRuntimeException;
-import com.sys.designer.framework.common.list.LongList;
 import com.sys.designer.framework.common.list.StringList;
 import com.sys.designer.framework.function.ArgumentResolver;
 import graphql.language.*;

@@ -4,7 +4,6 @@
 
 package com.sys.designer.framework.web.config;
 
-import com.sys.designer.framework.api.session.SessionService;
 import com.sys.designer.framework.common.config.CommonConfig;
 import com.sys.designer.framework.common.constant.CommonConst;
 import com.sys.designer.framework.common.util.SessionUtil;
@@ -18,7 +17,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import java.util.UUID;
 
 public class AuthenticationInterceptor implements HandlerInterceptor {
-    private CommonConfig commonConfig;
+    private final CommonConfig commonConfig;
 
     public AuthenticationInterceptor(CommonConfig commonConfig) {
         this.commonConfig = commonConfig;

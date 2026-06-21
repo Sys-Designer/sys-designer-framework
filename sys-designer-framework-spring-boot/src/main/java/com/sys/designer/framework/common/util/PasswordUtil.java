@@ -6,7 +6,6 @@ package com.sys.designer.framework.common.util;
 
 import com.sys.designer.framework.common.errorcode.CommonErrorCode;
 import com.sys.designer.framework.common.exception.BusinessRuntimeException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
@@ -31,7 +30,7 @@ public final class PasswordUtil {
      * @return encode str
      */
     public static String encode(CharSequence rawPassword) {
-        return new BCryptPasswordEncoder().encode(rawPassword);
+        return ComponentUtil.getBean(PasswordEncoder.class).encode(rawPassword);
     }
 
     public static String encode(char[] rawPassword) {

@@ -2,9 +2,7 @@ package com.sys.designer.framework.api.session;
 
 import com.sys.designer.framework.common.util.ValueUtil;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class UserBaseInfo {
     private Long userId;
@@ -14,6 +12,7 @@ public class UserBaseInfo {
     private String role;
     private String securityKey;
     private transient RoleType roleType;
+    private Set<String> roles;
 
     public RoleType role() {
         if (Objects.nonNull(roleType)) {
@@ -21,6 +20,33 @@ public class UserBaseInfo {
         }
         roleType = RoleType.from(role);
         return roleType;
+    }
+
+    public void setRoles(Set<String> roles) {
+        this.roles = roles;
+    }
+
+    public Set<String> roles() {
+        if (Objects.isNull(roles)) {
+            if (Objects.isNull(data)) {
+                roles = new HashSet<>();
+            } else {
+                Object o = data.get("roles");
+                if (o instanceof List list) {
+                    roles = new HashSet<>(list);
+                } else if (o instanceof Set set) {
+                    roles = new HashSet<>(set);
+                } else {
+                    roles = new HashSet<>();
+                }
+            }
+
+            if (ValueUtil.isNotEmpty(role())) {
+                roles.add(role().getValue());
+            }
+
+        }
+        return roles;
     }
 
     public Long getUserId() {

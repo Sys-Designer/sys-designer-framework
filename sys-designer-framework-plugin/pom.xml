@@ -4,18 +4,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>com.sys-designer</groupId>
-        <artifactId>sys-designer-framework-parent</artifactId>
-        <version>1.0.2</version>
-    </parent>
-
     <groupId>com.sys-designer</groupId>
-    <artifactId>sys-designer-framework-web-spring-boot</artifactId>
-    <version>1.0.2</version>
+    <artifactId>sys-designer-framework-plugin</artifactId>
+    <version>1.0.0</version>
 
-    <name>sys-designer-framework-web-spring-boot</name>
-    <description>Sys-Designer Framework Web SpringBoot</description>
+    <name>sys-designer-framework-plugin</name>
+    <description>Sys-Designer Framework Core</description>
     <url>https://github.com/Sys-Designer/sys-designer-framework</url>
 
     <licenses>
@@ -51,56 +45,6 @@
         <maven.compiler.encoding>UTF-8</maven.compiler.encoding>
     </properties>
 
-
-    <dependencies>
-        <dependency>
-            <groupId>com.sys-designer</groupId>
-            <artifactId>sys-designer-framework-spring-boot</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-api</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-graphql</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-websocket</artifactId>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
-
     <build>
         <plugins>
             <plugin>
@@ -126,27 +70,11 @@
                 <executions><execution><goals><goal>jar-no-fork</goal></goals></execution></executions>
             </plugin>
             <!-- 2、javadoc.jar -->
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.7.0</version>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals><goal>jar</goal></goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <encoding>UTF-8</encoding>
-                    <docencoding>UTF-8</docencoding>
-                    <charset>UTF-8</charset>
-                    <additionalJOptions>
-                        <additionalJOption>-Xdoclint:none</additionalJOption>
-                    </additionalJOptions>
-                    <failOnError>false</failOnError>
-                    <failOnWarnings>false</failOnWarnings>
-                </configuration>
+                <version>3.6.3</version>
+                <executions><execution><goals><goal>jar</goal></goals></execution></executions>
             </plugin>
             <!--3、GPG签名插件-->
             <plugin>
@@ -167,4 +95,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

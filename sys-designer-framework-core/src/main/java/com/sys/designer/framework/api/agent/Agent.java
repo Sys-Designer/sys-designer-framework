@@ -7,5 +7,7 @@ import com.sys.designer.framework.chat.ChatMessageResponse;
 public interface Agent {
     String getId();
 
+    String getName();
+
     void chat(ChatMessageResponse response, ChatMessage chatMessage, ChatMessageInput messageInput);
 }

@@ -44,7 +44,7 @@ public class GlobalExceptionHandler {
             } else {
                 ApiUtil.getResponse().setStatus(HttpServletResponse.SC_BAD_REQUEST);
             }
-            LOGGER.error("[C] url:" + request.getRequestURI() + ",code:" + result.getCode() + " - " + result.getMessage());
+            LOGGER.error("[C] url:" + request.getRequestURI() + ",code:" + result.getCode() + " - " + result.getMessage(),exception);
         } else {
             ApiUtil.getResponse().setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             LOGGER.error("[S] url:" + request.getRequestURI() + ",code:" + result.getCode() + " - " + result.getMessage(), exception);
@@ -61,7 +61,7 @@ public class GlobalExceptionHandler {
         result.message(businessRuntimeException.getMessage());
         boolean isClientError = result.getCode().startsWith(CommonConst.CLIENT_ERROR_CODE_PREFIX);
         if (isClientError) {
-            LOGGER.error("[C] url:" + request.getRequestURI() + ",code:" + result.getCode() + " - " + result.getMessage());
+            LOGGER.error("[C] url:" + request.getRequestURI() + ",code:" + result.getCode() + " - " + result.getMessage(),exception);
         } else {
             LOGGER.error("[C] url:" + request.getRequestURI() + ",code:" + result.getCode() + " - " + result.getMessage(), exception);
         }

@@ -29,7 +29,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.server.standard.ServerEndpointExporter;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -46,7 +45,6 @@ public class WebSocketServer {
     private static SessionService sessionService;
 
     private static RTMessageService RTMessageService;
-    private static Map<String, ChatMessageHandler> handlers = new HashMap<>();
     private static ChatMessageHandler chatMessageHandler;
 
     @PostConstruct

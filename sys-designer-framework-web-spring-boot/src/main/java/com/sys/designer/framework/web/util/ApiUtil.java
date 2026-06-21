@@ -4,9 +4,7 @@
 
 package com.sys.designer.framework.web.util;
 
-import com.sys.designer.framework.annotation.PublicApi;
 import com.sys.designer.framework.common.constant.CommonConst;
-import com.sys.designer.framework.common.entity.PartFile;
 import com.sys.designer.framework.common.entity.ResultData;
 import com.sys.designer.framework.common.entity.TextFileContent;
 import com.sys.designer.framework.common.errorcode.CommonErrorCode;
@@ -21,9 +19,6 @@ import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.multipart.MultipartHttpServletRequest;
-import org.springframework.web.multipart.support.StandardServletMultipartResolver;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,9 +29,7 @@ import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -144,7 +137,6 @@ public final class ApiUtil {
         }
         if (tenantId && ValueUtil.isEmpty(SessionUtil.tenantId())) {
             tmpResult.code(CommonErrorCode.PARAMETER_MISSING).message("tenantId missing");
-            return;
         }
     }
 
