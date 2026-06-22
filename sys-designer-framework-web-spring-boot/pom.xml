@@ -7,12 +7,11 @@
     <parent>
         <groupId>com.sys-designer</groupId>
         <artifactId>sys-designer-framework-parent</artifactId>
-        <version>1.0.2</version>
+        <version>1.0.3</version>
     </parent>
-
     <groupId>com.sys-designer</groupId>
     <artifactId>sys-designer-framework-web-spring-boot</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
 
     <name>sys-designer-framework-web-spring-boot</name>
     <description>Sys-Designer Framework Web SpringBoot</description>
@@ -103,58 +102,67 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-gpg-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <id>sign-artifacts</id>
-                        <phase>verify</phase>
-                        <goals><goal>sign</goal></goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <defaultKeyring>true</defaultKeyring>
-                </configuration>
-            </plugin>
-            <!-- 1、源码source.jar -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.3.1</version>
-                <executions><execution><goals><goal>jar-no-fork</goal></goals></execution></executions>
-            </plugin>
-            <!-- 2、javadoc.jar -->
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.7.0</version>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals><goal>jar</goal></goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <encoding>UTF-8</encoding>
-                    <docencoding>UTF-8</docencoding>
-                    <charset>UTF-8</charset>
-                    <additionalJOptions>
-                        <additionalJOption>-Xdoclint:none</additionalJOption>
-                    </additionalJOptions>
-                    <failOnError>false</failOnError>
-                    <failOnWarnings>false</failOnWarnings>
-                </configuration>
-            </plugin>
-            <!--3、GPG签名插件-->
+            <!-- GPG签名 唯一一份 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
                 <version>3.2.5</version>
-                <executions><execution><phase>verify</phase><goals><goal>sign</goal></goals></execution></executions>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <skip>${gpg.skip}</skip>
+                    <defaultKeyring>true</defaultKeyring>
+                </configuration>
             </plugin>
+
+            <!-- 源码插件 正确开关 skip -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <skipSource>${maven.source.skip}</skipSource>
+                </configuration>
+            </plugin>
+
+            <!-- Javadoc 插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <additionalJOption>-Xdoclint:none</additionalJOption>
+                    <charset>UTF-8</charset>
+                    <encoding>UTF-8</encoding>
+                    <docencoding>UTF-8</docencoding>
+                    <skip>${maven.javadoc.skip}</skip>
+                </configuration>
+            </plugin>
+
+            <!-- 中央发布插件 -->
             <plugin>
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
