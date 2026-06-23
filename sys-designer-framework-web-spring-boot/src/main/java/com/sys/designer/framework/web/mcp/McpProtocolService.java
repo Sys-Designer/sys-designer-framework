@@ -22,12 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Component
 @ConditionalOnBean(ToolManager.class)
@@ -120,8 +115,15 @@ public class McpProtocolService {
         try {
             Map<String, ToolLoader> beans = ComponentUtil.getBeans(ToolLoader.class);
             Collection<ToolLoader> values = beans.values();
+            String text = request.models();
+            if (Objects.isNull(text)) {
+                text = "";
+            }
+            List<String> models = Arrays.stream(text.split(","))
+                    .map(String::trim)
+                    .filter(ValueUtil::isNotEmpty).toList();
             for (ToolLoader value : values) {
-                List<Map<String, Object>> tools = value.getTools();
+                List<Map<String, Object>> tools = value.getTools(models);
                 if (Objects.nonNull(tools)) {
                     resultList.addAll(tools);
                 }

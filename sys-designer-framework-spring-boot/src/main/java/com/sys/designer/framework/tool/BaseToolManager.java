@@ -17,7 +17,7 @@ public class BaseToolManager extends ToolManager {
     @Override
     public Object execute(String name, Map<String, Object> arguments) {
         String methods = ComponentUtil.getBean(CommonConfig.class).getValue("oc.mcp.methods");
-        if (ValueUtil.isNotEmpty(methods)) {
+        if (name.startsWith("user_") && ValueUtil.isNotEmpty(methods)) {
             String[] split = methods.split(",");
             for (String it : split) {
 
