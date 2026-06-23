@@ -78,7 +78,7 @@
             <dependency>
                 <groupId>com.sys-designer</groupId>
                 <artifactId>sys-designer-framework-web-spring-boot</artifactId>
-                <version>${sys-designer-framework.version}</version>
+                <version>1.0.4</version>
             </dependency>
             <dependency>
                 <groupId>org.mybatis.spring.boot</groupId>

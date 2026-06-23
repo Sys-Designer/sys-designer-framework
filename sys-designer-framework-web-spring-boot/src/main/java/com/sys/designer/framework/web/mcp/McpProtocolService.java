@@ -156,13 +156,15 @@ public class McpProtocolService {
         }
         Object result = null;
         Map<String, Object> data = new HashMap<>();
-        Integer errorCode = 200;
+        Integer errorCode = null;
+        boolean success = true;
         String message = "";
         try {
             result = toolManager.execute(name, arguments);
             data.put("results", result);
         } catch (Exception e) {
             errorCode = -32600;
+            success = false;
             LOGGER.error("error", e);
             if (e instanceof BusinessRuntimeException runtimeException) {
                 ErrorCode code = runtimeException.getCode();
@@ -186,8 +188,13 @@ public class McpProtocolService {
                 }
             }
         }
-        data.put("code", errorCode);
-        data.put("message", message);
+        if (Objects.nonNull(errorCode)) {
+            data.put("code", errorCode);
+        }
+        data.put("success", success);
+        if (ValueUtil.isNotEmpty(message)) {
+            data.put("message", message);
+        }
 
         int total = 1;
         if (Objects.isNull(result)) {
@@ -198,6 +205,13 @@ public class McpProtocolService {
         data.put("total", total);
         Map<String, Object> content = new HashMap<>();
 
+        boolean isEmptyData = !success || Objects.isNull(result) ||
+                (result instanceof Map<?, ?> map && map.isEmpty()) ||
+                (result instanceof List<?> list && list.isEmpty());
+        if (isEmptyData) {
+            data.remove("total");
+            data.remove("results");
+        }
 
         String text = JsonUtil.toJson(result);
 

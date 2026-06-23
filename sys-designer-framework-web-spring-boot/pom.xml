@@ -7,11 +7,11 @@
     <parent>
         <groupId>com.sys-designer</groupId>
         <artifactId>sys-designer-framework-parent</artifactId>
-        <version>1.0.3</version>
+        <version>1.0.4</version>
     </parent>
     <groupId>com.sys-designer</groupId>
     <artifactId>sys-designer-framework-web-spring-boot</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
 
     <name>sys-designer-framework-web-spring-boot</name>
     <description>Sys-Designer Framework Web SpringBoot</description>
