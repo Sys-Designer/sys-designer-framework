@@ -7,11 +7,11 @@ public final class ThreadUtil {
     private ThreadUtil() {
     }
 
-    public static void runJob(String name, Runnable runnable) {
-        runJob(name, null, runnable);
+    public static Thread runJob(String name, Runnable runnable) {
+        return runJob(name, null, runnable);
     }
 
-    public static void runJob(String name, Integer index, Runnable runnable) {
+    public static Thread runJob(String name, Integer index, Runnable runnable) {
         List<Object> values = SessionUtil.getValues();
         Thread.Builder.OfVirtual builder = Objects.nonNull(index) ? Thread.ofVirtual().name(name, index) : Thread.ofVirtual().name(name);
         Thread start = builder.start(() -> {
@@ -23,5 +23,6 @@ public final class ThreadUtil {
             }
         });
         start.run();
+        return start;
     }
 }
