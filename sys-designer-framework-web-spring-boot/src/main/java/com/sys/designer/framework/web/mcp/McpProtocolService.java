@@ -184,9 +184,14 @@ public class McpProtocolService {
                     } else if (CommonErrorCode.NOT_FOUND.equals(code)) {
                         errorCode = -32001;
                     }
-                } else if (e instanceof ErrorCodeRuntimeException) {
+                } else {
                     errorCode = -32600;
                     message = runtimeException.getMessage();
+                }
+                if (CommonErrorCode.ACCESS_DENIED.equals(code)) {
+                    errorCode = 1004;
+                } else if (CommonErrorCode.PERMISSION_DENIED.equals(code)) {
+                    errorCode = 1005;
                 }
             }
         }
