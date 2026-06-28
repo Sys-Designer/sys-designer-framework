@@ -41,7 +41,7 @@ public class ExpressEnginManager {
                 defaultEngin = it;
             }
             executeCache.put(type, it);
-            LOGGER.info("express engine[%s] register success.%s", type, it.getClass().getName());
+            LOGGER.info("express engine[{}] register success.{}", type, it.getClass().getName());
         }
         if (Objects.nonNull(defaultEngin) && executeCache.size() == 1) {
             executeCache.put("default", defaultEngin);
