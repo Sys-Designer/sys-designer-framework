@@ -6,6 +6,8 @@ package com.sys.designer.framework.common.exception;
 
 import com.sys.designer.framework.api.ErrorCode;
 
+import java.util.Objects;
+
 /**
  * @author qinjiawang
  */
@@ -47,5 +49,10 @@ public class BusinessRuntimeException extends ErrorCodeRuntimeException {
     @Override
     public String getMessage() {
         return super.getMessage();
+    }
+
+    @Override
+    public boolean isClientError() {
+        return getCode().isClientError();
     }
 }

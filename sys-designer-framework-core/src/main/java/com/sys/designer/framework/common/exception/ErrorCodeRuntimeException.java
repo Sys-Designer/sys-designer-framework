@@ -32,4 +32,8 @@ public class ErrorCodeRuntimeException extends RuntimeException {
     public String getMessage() {
         return super.getMessage();
     }
+
+    public boolean isClientError() {
+        return true;
+    }
 }
