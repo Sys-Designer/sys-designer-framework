@@ -52,7 +52,7 @@ public final class TokenUtil {
     public static TokenInfo createToken(String deviceId, Long userId, String openid) {
         TokenGenerator generator = tokenGenerator();
         if (Objects.nonNull(generator)) {
-            return generator.get(userId, openid);
+            return generator.get(deviceId, userId, openid);
         }
         if (userId == null) {
             throw new BusinessRuntimeException(CommonErrorCode.SERVER_ERROR, "userId is required.");
