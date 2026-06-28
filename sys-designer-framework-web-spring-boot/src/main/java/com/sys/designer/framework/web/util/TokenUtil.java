@@ -178,6 +178,9 @@ public final class TokenUtil {
     }
 
     private static String getDeviceUid() {
+        if (Objects.isNull(ApiUtil.getRequest())) {
+            return "";
+        }
         StringBuilder sb = new StringBuilder();
         sb.append(ApiUtil.getClientIp()).append(".");
         sb.append(ApiUtil.getHost()).append(".");
