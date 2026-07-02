@@ -7,8 +7,11 @@ import com.sys.designer.framework.api.permission.PermissionConst;
 import com.sys.designer.framework.autoconfig.AutoConfigService;
 import com.sys.designer.framework.common.constant.CommonConst;
 import com.sys.designer.framework.common.entity.ResultData;
+import com.sys.designer.framework.common.errorcode.CommonErrorCode;
 import com.sys.designer.framework.common.exception.ErrorCodeRuntimeException;
 import com.sys.designer.framework.web.security.EncryptResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(CommonConst.API_PREFIX)
 @ConditionalOnBean(AutoConfigService.class)
 public class AutoConfigController {
+    private final static Logger LOGGER = LoggerFactory.getLogger(AutoConfigController.class);
     private AutoConfigService autoConfigService;
 
     public AutoConfigController(AutoConfigService autoConfigService) {
@@ -37,6 +41,11 @@ public class AutoConfigController {
                 ResultData<Object> resultData = ResultData.isFail();
                 resultData.setCode(ex.getErrorCode());
                 resultData.setMessage(ex.getMessage());
+                if (!ex.isClientError()) {
+                    LOGGER.error("error", e);
+                    resultData.setCode(CommonErrorCode.SERVER_ERROR.getCode());
+                    resultData.setMessage(CommonErrorCode.SERVER_ERROR.getMessage());
+                }
                 return resultData;
             }
         }

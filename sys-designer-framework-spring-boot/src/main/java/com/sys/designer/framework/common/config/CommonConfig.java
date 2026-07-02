@@ -43,7 +43,7 @@ public class CommonConfig {
     @Value("${spring.profiles.active:prod}")
     private String activeProfile;
 
-    @Value("${oc.demo.user-id}")
+    @Value("${oc.demo.user-id:}")
     private String demoUserId;
 
     private String instanceName;

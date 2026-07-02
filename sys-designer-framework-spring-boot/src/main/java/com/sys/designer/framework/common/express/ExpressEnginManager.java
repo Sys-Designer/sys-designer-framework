@@ -34,14 +34,14 @@ public class ExpressEnginManager {
             }
 
             if (executeCache.containsKey(type)) {
-                LOGGER.error("express engine[%s] already exits.%s", type, it.getClass().getName());
+                LOGGER.error("express engine[{}] already exits.{}", type, it.getClass().getName());
                 continue;
             }
             if (Objects.isNull(defaultEngin) || "default".equals(type)) {
                 defaultEngin = it;
             }
             executeCache.put(type, it);
-            LOGGER.info("express engine[%s] register success.%s", type, it.getClass().getName());
+            LOGGER.info("express engine[{}] register success.{}", type, it.getClass().getName());
         }
         if (Objects.nonNull(defaultEngin) && executeCache.size() == 1) {
             executeCache.put("default", defaultEngin);

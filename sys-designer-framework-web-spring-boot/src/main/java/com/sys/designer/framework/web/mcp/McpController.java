@@ -93,7 +93,9 @@ public class McpController {
 
         List<JsonRpcRequest> notifications = new ArrayList<>();
         List<JsonRpcRequest> requests = new ArrayList<>();
+        String models = servletRequest.getHeader("models");
         for (JsonRpcRequest msg : messages) {
+            msg.setModels(models);
             if (isJsonRpcRequest(msg)) {
                 requests.add(msg);
             } else {

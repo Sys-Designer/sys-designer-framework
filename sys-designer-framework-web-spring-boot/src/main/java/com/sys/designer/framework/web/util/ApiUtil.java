@@ -30,6 +30,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -265,6 +266,9 @@ public final class ApiUtil {
     }
 
     public static String getHost() {
+        if (Objects.isNull(getRequest())) {
+            return "";
+        }
         return getRequest().getHeader("Host");
     }
 

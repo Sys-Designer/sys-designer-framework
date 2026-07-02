@@ -22,12 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Component
 @ConditionalOnBean(ToolManager.class)
@@ -120,8 +115,15 @@ public class McpProtocolService {
         try {
             Map<String, ToolLoader> beans = ComponentUtil.getBeans(ToolLoader.class);
             Collection<ToolLoader> values = beans.values();
+            String text = request.models();
+            if (Objects.isNull(text)) {
+                text = "";
+            }
+            List<String> models = Arrays.stream(text.split(","))
+                    .map(String::trim)
+                    .filter(ValueUtil::isNotEmpty).toList();
             for (ToolLoader value : values) {
-                List<Map<String, Object>> tools = value.getTools();
+                List<Map<String, Object>> tools = value.getTools(models);
                 if (Objects.nonNull(tools)) {
                     resultList.addAll(tools);
                 }
@@ -156,13 +158,15 @@ public class McpProtocolService {
         }
         Object result = null;
         Map<String, Object> data = new HashMap<>();
-        Integer errorCode = 200;
+        Integer errorCode = null;
+        boolean success = true;
         String message = "";
         try {
             result = toolManager.execute(name, arguments);
             data.put("results", result);
         } catch (Exception e) {
             errorCode = -32600;
+            success = false;
             LOGGER.error("error", e);
             if (e instanceof BusinessRuntimeException runtimeException) {
                 ErrorCode code = runtimeException.getCode();
@@ -180,14 +184,24 @@ public class McpProtocolService {
                     } else if (CommonErrorCode.NOT_FOUND.equals(code)) {
                         errorCode = -32001;
                     }
-                } else if (e instanceof ErrorCodeRuntimeException) {
+                } else {
                     errorCode = -32600;
                     message = runtimeException.getMessage();
                 }
+                if (CommonErrorCode.ACCESS_DENIED.equals(code)) {
+                    errorCode = 1004;
+                } else if (CommonErrorCode.PERMISSION_DENIED.equals(code)) {
+                    errorCode = 1005;
+                }
             }
         }
-        data.put("code", errorCode);
-        data.put("message", message);
+        if (Objects.nonNull(errorCode)) {
+            data.put("code", errorCode);
+        }
+        data.put("success", success);
+        if (ValueUtil.isNotEmpty(message)) {
+            data.put("message", message);
+        }
 
         int total = 1;
         if (Objects.isNull(result)) {
@@ -198,6 +212,13 @@ public class McpProtocolService {
         data.put("total", total);
         Map<String, Object> content = new HashMap<>();
 
+        boolean isEmptyData = !success || Objects.isNull(result) ||
+                (result instanceof Map<?, ?> map && map.isEmpty()) ||
+                (result instanceof List<?> list && list.isEmpty());
+        if (isEmptyData) {
+            data.remove("total");
+            data.remove("results");
+        }
 
         String text = JsonUtil.toJson(result);
 

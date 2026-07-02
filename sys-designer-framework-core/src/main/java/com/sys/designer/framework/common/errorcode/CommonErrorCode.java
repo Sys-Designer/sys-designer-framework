@@ -63,6 +63,7 @@ public enum CommonErrorCode implements ErrorCode {
      * some parameters must need but missing.
      */
     PARAMETER_MISSING(CommonConst.CLIENT_ERROR_CODE_PREFIX + "parameter.missing", "parameter missing"),
+    DEPENDENCY_RESOURCE_NOT_FOUND(CommonConst.CLIENT_ERROR_CODE_PREFIX + "dependency.resource.not.found", "Dependency Resource Not Fond"),
 
     /**
      * some parameters not expected.

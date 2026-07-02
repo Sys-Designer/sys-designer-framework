@@ -12,7 +12,6 @@ import com.sys.designer.framework.common.errorcode.CommonErrorCode;
 import com.sys.designer.framework.common.util.ValueUtil;
 import org.springframework.http.HttpHeaders;
 
-import javax.servlet.http.HttpServletResponse;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -201,7 +200,7 @@ public class ResultData<T> implements Result<T> {
         if (Objects.isNull(getStatusCode())) {
             return false;
         }
-        return (HttpServletResponse.SC_UNAUTHORIZED + "").equals(this.getStatusCode().toString());
+        return ("401").equals(this.getStatusCode().toString());
     }
 
     public Boolean getEncrypt() {

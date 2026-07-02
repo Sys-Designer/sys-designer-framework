@@ -228,9 +228,13 @@ public class GObject implements Identifier, GClass {
 
     public String gOid() {
         Long id = sourceId();
-        if (Objects.isNull(id)) {
+        if (Objects.nonNull(id)) {
             return id.toString();
         }
         return null;
+    }
+
+    public boolean isDeprecared() {
+        return false;
     }
 }
