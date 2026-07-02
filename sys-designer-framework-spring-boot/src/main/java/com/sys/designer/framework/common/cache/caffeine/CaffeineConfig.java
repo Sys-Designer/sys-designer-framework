@@ -7,7 +7,6 @@ package com.sys.designer.framework.common.cache.caffeine;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
-import org.checkerframework.checker.index.qual.NonNegative;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,12 +31,12 @@ public class CaffeineConfig {
         }
 
         @Override
-        public long expireAfterUpdate(@NonNull String key, @NonNull Object value, long currentTime, @NonNegative long currentDuration) {
+        public long expireAfterUpdate(@NonNull String key, @NonNull Object value, long currentTime, long currentDuration) {
             return currentDuration;
         }
 
         @Override
-        public long expireAfterRead(@NonNull String key, @NonNull Object value, long currentTime, @NonNegative long currentDuration) {
+        public long expireAfterRead(@NonNull String key, @NonNull Object value, long currentTime, long currentDuration) {
             return currentDuration;
         }
     }

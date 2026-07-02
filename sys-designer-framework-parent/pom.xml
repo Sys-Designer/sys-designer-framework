@@ -38,8 +38,8 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git@github.com:Sys-Designer/sys-designer-framework.git</connection>
-        <developerConnection>scm:git:git@github.com:Sys-Designer/sys-designer-framework.git</developerConnection>
+        <connection>scm:git:https://github.com/Sys-Designer/sys-designer-framework.git</connection>
+        <developerConnection>scm:git:https://github.com/Sys-Designer/sys-designer-framework.git</developerConnection>
         <url>https://github.com/Sys-Designer/sys-designer-framework</url>
         <tag>1.0.4</tag>
     </scm>
@@ -128,6 +128,7 @@
             <dependency>
                 <groupId>org.mariadb.jdbc</groupId>
                 <artifactId>mariadb-java-client</artifactId>
+                <version>3.3.3</version>
             </dependency>
             <dependency>
                 <groupId>org.xerial</groupId>
@@ -163,10 +164,12 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+                <version>3.2.5</version>
             </dependency>
             <dependency>
                 <groupId>org.elasticsearch.client</groupId>
                 <artifactId>elasticsearch-rest-high-level-client</artifactId>
+                <version>3.2.5</version>
             </dependency>
 
             <!-- JSON序列化 -->
@@ -362,7 +365,7 @@
                 <extensions>true</extensions>
                 <configuration>
                     <publishingServerId>central</publishingServerId>
-                    <autoPublish>true</autoPublish>
+                    <autoPublish>false</autoPublish>
                 </configuration>
             </plugin>
         </plugins>
