@@ -5,6 +5,7 @@
 package com.sys.designer.framework.common.exception;
 
 import com.sys.designer.framework.api.ErrorCode;
+import com.sys.designer.framework.common.util.ValueUtil;
 
 import java.util.Objects;
 
@@ -48,7 +49,11 @@ public class BusinessRuntimeException extends ErrorCodeRuntimeException {
 
     @Override
     public String getMessage() {
-        return super.getMessage();
+        String message = super.getMessage();
+        if (ValueUtil.isEmpty(message)) {
+            return code.getMessage();
+        }
+        return message;
     }
 
     @Override
