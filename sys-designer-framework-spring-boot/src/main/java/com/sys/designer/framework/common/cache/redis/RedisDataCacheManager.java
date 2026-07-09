@@ -10,6 +10,8 @@ import com.sys.designer.framework.common.util.JsonUtil;
 import com.sys.designer.framework.common.util.RedisUtil;
 import com.sys.designer.framework.common.util.ValueUtil;
 import jakarta.annotation.Resource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisCallback;
@@ -31,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 public class RedisDataCacheManager extends CommonCacheManager implements DataCacheManager {
     private String source;
     private static final int MAX_MAP_ELEMENTS_COUNT = 30;
+    private final static Logger LOGGER = LoggerFactory.getLogger(RedisDataCacheManager.class);
 
     @Resource
     private CommonConfig commonConfig;
@@ -144,7 +147,7 @@ public class RedisDataCacheManager extends CommonCacheManager implements DataCac
                     keySet.add(new String(cursor.next()));
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.error("error", e);
             }
             return keySet;
         });

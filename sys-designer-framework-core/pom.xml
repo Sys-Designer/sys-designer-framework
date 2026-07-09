@@ -11,7 +11,7 @@
     </parent>
     <groupId>com.sys-designer</groupId>
     <artifactId>sys-designer-framework-core</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
 
     <name>sys-designer-framework-core</name>
     <description>Sys-Designer Framework Core</description>

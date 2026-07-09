@@ -176,6 +176,11 @@ public final class JsonUtil {
         if (Objects.isNull(obj)) {
             return null;
         }
+        if (obj instanceof String str) {
+            if (ValueUtil.isEmpty(str)) {
+                return null;
+            }
+        }
         if (obj instanceof Map map) {
             return map;
         }
