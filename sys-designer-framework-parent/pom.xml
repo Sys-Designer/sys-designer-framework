@@ -55,7 +55,7 @@
         <!-- 版本统一对齐 3.5.9 生态 -->
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <spring-cloud-alibaba.version>2023.0.1.3</spring-cloud-alibaba.version>
-        <sys-designer-framework.version>1.0.4</sys-designer-framework.version>
+        <sys-designer-framework.version>1.0.5</sys-designer-framework.version>
         <grpc.version>2.15.0.RELEASE</grpc.version>
         <jackson.version>2.17.3</jackson.version>
 
@@ -94,7 +94,7 @@
             <dependency>
                 <groupId>com.sys-designer</groupId>
                 <artifactId>sys-designer-framework-core</artifactId>
-                <version>1.0.5</version>
+                <version>${sys-designer-framework.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.sys-designer</groupId>
