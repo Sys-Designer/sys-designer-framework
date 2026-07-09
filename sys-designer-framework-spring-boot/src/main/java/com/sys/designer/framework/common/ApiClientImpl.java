@@ -47,7 +47,7 @@ public class ApiClientImpl implements ApiClient {
 
     public ApiClientImpl(ApplicationContext applicationContext) {
         if (Objects.nonNull(applicationContext)) {
-            ComponentUtil.setApplicationContext(applicationContext);
+            ComponentUtil.setApplicationContextBean(applicationContext);
         }
         init();
     }

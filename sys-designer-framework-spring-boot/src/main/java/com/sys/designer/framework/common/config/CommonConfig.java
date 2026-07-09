@@ -53,7 +53,7 @@ public class CommonConfig {
     private ServerProperties serverProperties;
 
     public CommonConfig(ApplicationContext applicationContext) {
-        ComponentUtil.setApplicationContext(applicationContext);
+        ComponentUtil.setApplicationContextBean(applicationContext);
         SystemUtil.init();
     }
 

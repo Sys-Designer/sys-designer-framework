@@ -27,7 +27,7 @@ public class PluginLoadingInitializer implements ApplicationContextInitializer<C
 
     @Override
     public void initialize(ConfigurableApplicationContext applicationContext) {
-        ComponentUtil.setApplicationContext(applicationContext);
+        ComponentUtil.setApplicationContextBean(applicationContext);
         ConfigurableEnvironment environment = applicationContext.getEnvironment();
         boolean enabled = Boolean.parseBoolean(environment.getProperty("oc.plugin.enabled", "false"));
         if (!enabled) {

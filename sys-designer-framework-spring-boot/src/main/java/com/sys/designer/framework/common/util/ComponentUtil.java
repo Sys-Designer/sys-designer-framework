@@ -1,7 +1,6 @@
 /**
  * Copyright (C) Oceancode Cloud Technologies Co., Ltd. 2024-2024 .All Rights Reserved.
  */
-
 package com.sys.designer.framework.common.util;
 
 import com.sys.designer.framework.api.TypeEnum;
@@ -15,27 +14,52 @@ import com.sys.designer.framework.common.function.LocalFunction;
 import com.sys.designer.framework.common.function.RemoteFunction;
 import com.sys.designer.framework.function.Plugin;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.function.Function;
 
-public final class ComponentUtil {
-    private static ApplicationContext applicationContext;
+@Component
+public final class ComponentUtil implements ApplicationContextAware {
+
+    // 不再静态常驻上下文，改用实例持有，每次静态方法从实例取最新就绪上下文
+    private static ComponentUtil INSTANCE;
+    private ApplicationContext context;
+    private static ApplicationContext CONTEXT;
 
     private ComponentUtil() {
     }
 
+    @Override
+    public void setApplicationContext(ApplicationContext ctx) {
+        this.context = ctx;
+        INSTANCE = this;
+    }
+
+    private static ApplicationContext getContext() {
+        if (INSTANCE == null || INSTANCE.context == null) {
+            if (Objects.nonNull(CONTEXT)) {
+                return CONTEXT;
+            }
+            throw new BusinessRuntimeException(CommonErrorCode.SERVER_ERROR, "Spring上下文未初始化");
+        }
+        return INSTANCE.context;
+    }
+
+    // ===================== 下面所有方法只改一行：applicationContext → getContext() =====================
+
     public static <T> Map<String, T> getBeans(Class<T> beanTypeClassType) {
-        return applicationContext.getBeansOfType(beanTypeClassType);
+        return getContext().getBeansOfType(beanTypeClassType);
     }
 
     public static <T> T getBean(Class<T> beanTypeClassType) {
-        return applicationContext.getBean(beanTypeClassType);
+        return getContext().getBean(beanTypeClassType);
     }
 
     public static <T> T getBean(Class<T> beanTypeClassType, boolean throwEx) {
         try {
-            return applicationContext.getBean(beanTypeClassType);
+            return getContext().getBean(beanTypeClassType);
         } catch (Throwable throwable) {
             if (throwEx) {
                 throw throwable;
@@ -45,12 +69,12 @@ public final class ComponentUtil {
     }
 
     public static <T> T getBean(String key, Class<T> returnClassType) {
-        return applicationContext.getBean(key, returnClassType);
+        return getContext().getBean(key, returnClassType);
     }
 
     public static <T> T getBean(String key, Class<T> returnClassType, boolean throwEx) {
         try {
-            return applicationContext.getBean(key, returnClassType);
+            return getContext().getBean(key, returnClassType);
         } catch (Throwable t) {
             if (throwEx) {
                 throw t;
@@ -70,7 +94,6 @@ public final class ComponentUtil {
                 return value;
             }
         }
-
         return null;
     }
 
@@ -90,12 +113,12 @@ public final class ComponentUtil {
         return bean;
     }
 
-    public static void setApplicationContext(ApplicationContext ctx) {
-        applicationContext = ctx;
+    public static void setApplicationContextBean(ApplicationContext context) {
+        CONTEXT = context;
     }
 
     public static ApplicationContext getApplicationContext() {
-        return applicationContext;
+        return getContext();
     }
 
     public static <T> T getLocalFunction(Class<T> typeClass, List<T> functions) {
@@ -112,7 +135,6 @@ public final class ComponentUtil {
                     interfaces = function.getClass().getSuperclass().getInterfaces();
                 }
             }
-
             for (Class<?> it : interfaces) {
                 if ("com.sys.designer.framework.test.TestFunction".equals(it.getName())) {
                     testFunction = function;
@@ -121,14 +143,11 @@ public final class ComponentUtil {
                 }
             }
         }
-
         if (isTest) {
             return Objects.nonNull(testFunction) ? testFunction : localFunction;
         }
-
         return localFunction;
     }
-
 
     public static <T> T getLocalFunction(Class<T> functionClass) {
         return getLocalFunction(functionClass, true);
@@ -168,14 +187,7 @@ public final class ComponentUtil {
                     remoteFunction.add(value);
                 }
             }
-            clientFunction.sort(new Comparator<T>() {
-                @Override
-                public int compare(T o1, T o2) {
-                    ClientFunction c1 = (ClientFunction) o1;
-                    ClientFunction c2 = (ClientFunction) o2;
-                    return c1.getType().getOrder() - c2.getType().getOrder();
-                }
-            });
+            clientFunction.sort(Comparator.comparingInt(o -> ((ClientFunction) o).getType().getOrder()));
             if (onlyGetRemoteFunction) {
                 return clientFunction.isEmpty() ? null : clientFunction.get(0);
             }
