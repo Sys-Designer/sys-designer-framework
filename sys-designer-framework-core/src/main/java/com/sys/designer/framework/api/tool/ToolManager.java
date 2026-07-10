@@ -1,8 +1,8 @@
 package com.sys.designer.framework.api.tool;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import com.sys.designer.framework.common.util.ValueUtil;
+
+import java.util.*;
 
 public class ToolManager {
     private String name;
@@ -10,6 +10,8 @@ public class ToolManager {
     public List<Map<String, Object>> getTools() {
         return Collections.emptyList();
     }
+
+    private Map<String, CallFunction> callFunctionMap = new HashMap<>();
 
     public void setName(String name) {
         this.name = name;
@@ -43,5 +45,24 @@ public class ToolManager {
 
     public boolean hasOutputSchema(String name) {
         return true;
+    }
+
+    public void registerCallTools(List<CallFunction> callFunctionList) {
+        if (ValueUtil.isEmpty(callFunctionList)) {
+            return;
+        }
+        for (CallFunction it : callFunctionList) {
+            if (ValueUtil.isEmpty(it.getName())) {
+                return;
+            }
+            if (callFunctionMap.containsKey(it.getName())) {
+                continue;
+            }
+            callFunctionMap.put(it.getName(), it);
+        }
+    }
+
+    public CallFunction getCallFunction(String name) {
+        return callFunctionMap.get(name);
     }
 }

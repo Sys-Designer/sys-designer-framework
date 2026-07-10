@@ -1,6 +1,8 @@
 package com.sys.designer.framework.tool;
 
+import com.sys.designer.framework.api.tool.CallFunction;
 import com.sys.designer.framework.api.tool.ToolManager;
+import com.sys.designer.framework.api.tool.ToolParam;
 import com.sys.designer.framework.common.config.CommonConfig;
 import com.sys.designer.framework.common.util.ComponentUtil;
 import com.sys.designer.framework.common.util.ValueUtil;
@@ -16,6 +18,16 @@ public class BaseToolManager extends ToolManager {
 
     @Override
     public Object execute(String name, Map<String, Object> arguments) {
+        if (name.startsWith("custom_")) {
+            String[] split = name.split("_");
+            if (split.length > 2) {
+                String groupName = split[1];
+                CallFunction callFunction = getCallFunction(groupName);
+                if (Objects.nonNull(callFunction)) {
+                    return callFunction.call(name, new ToolParam(arguments));
+                }
+            }
+        }
         String methods = ComponentUtil.getBean(CommonConfig.class).getValue("oc.mcp.methods");
         if (name.startsWith("user_") && ValueUtil.isNotEmpty(methods)) {
             String[] split = methods.split(",");

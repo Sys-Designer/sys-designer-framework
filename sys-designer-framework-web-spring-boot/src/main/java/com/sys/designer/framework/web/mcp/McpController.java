@@ -1,6 +1,7 @@
 package com.sys.designer.framework.web.mcp;
 
 import com.sys.designer.framework.api.permission.PermissionConst;
+import com.sys.designer.framework.api.tool.CallFunction;
 import com.sys.designer.framework.api.tool.ToolManager;
 import com.sys.designer.framework.common.constant.CommonConst;
 import com.sys.designer.framework.common.util.JsonUtil;
@@ -63,9 +64,10 @@ public class McpController {
     @Value("${oc.mcp.timeout:0}")
     private Long sseTimeout;
 
-    public McpController(McpProtocolService mcpProtocolService, ToolManager toolManager) {
+    public McpController(McpProtocolService mcpProtocolService, ToolManager toolManager, List<CallFunction> callFunctionList) {
         this.mcpProtocolService = mcpProtocolService;
         this.toolManager = toolManager;
+        toolManager.registerCallTools(callFunctionList);
     }
 
     // ======================== Streamable HTTP ========================
