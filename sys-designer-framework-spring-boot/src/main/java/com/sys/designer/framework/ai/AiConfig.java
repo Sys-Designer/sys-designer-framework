@@ -12,8 +12,8 @@ import org.springframework.context.annotation.Primary;
 
 import java.util.List;
 
-@Configuration
-@ConditionalOnClass(PromptTemplate.class)
+//@Configuration
+//@ConditionalOnClass(PromptTemplate.class)
 public class AiConfig {
 
     @Bean

@@ -19,9 +19,9 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.Objects;
 
-@Primary
-@Component
-@ConditionalOnClass(ChatClient.class)
+//@Primary
+//@Component
+//@ConditionalOnClass(ChatClient.class)
 public class DefaultAiServiceImpl implements ChatService {
     @Resource
     private ChatClient chatClient;
