@@ -43,9 +43,6 @@ public class CommonConfig {
     @Value("${spring.profiles.active:prod}")
     private String activeProfile;
 
-    @Value("${oc.demo.user-id:}")
-    private String demoUserId;
-
     private String instanceName;
     private String ip;
 
@@ -255,9 +252,5 @@ public class CommonConfig {
 
     public String getPrivateKey() {
         return getValue("oc.security.rsa.private-key");
-    }
-
-    public String getDemoUserId() {
-        return demoUserId;
     }
 }

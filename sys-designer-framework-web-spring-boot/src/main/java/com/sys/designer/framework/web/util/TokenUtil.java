@@ -70,10 +70,6 @@ public final class TokenUtil {
         }
         String token = null;
         String sessionId = UUID.randomUUID().toString().replace("-", "");
-        if (userId.toString().equals(commonConfig.getDemoUserId())) {
-            sessionId = userId.toString();
-            deviceUid = sessionId;
-        }
         if (isToken()) {
             token = deviceUid + "." + sessionId + "." + uid;
         } else {
@@ -219,15 +215,7 @@ public final class TokenUtil {
                 deviceUid = strs[0];
                 tokenInfo.setDeviceId(deviceUid);
                 tokenInfo.setUserId(Long.parseLong(s3C));
-            } else {
-                deviceUid = getShortMd5Str(getDeviceUid() + s3);
-                boolean isDemoUser = s3C.equals(commonConfig.getDemoUserId());
-                if (!isDemoUser && !strs[0].equals(deviceUid)) {
-                    throw new BusinessRuntimeException(CommonErrorCode.AUTHORIZATION_INVALID);
-                }
-                tokenInfo.setUserId(null);
             }
-
             tokenInfo.setToken(strs[1]);
             tokenInfo.setSessionId(strs[1]);
             if (s3.startsWith("o")) {
