@@ -37,12 +37,12 @@ public class AutoConfigController {
             AutoConfigResponse result = autoConfigService.autoConfig(autoConfigRequest);
             return ResultData.isOk(result);
         } catch (Exception e) {
+            LOGGER.error("error", e);
             if (e instanceof ErrorCodeRuntimeException ex) {
                 ResultData<Object> resultData = ResultData.isFail();
                 resultData.setCode(ex.getErrorCode());
                 resultData.setMessage(ex.getMessage());
                 if (!ex.isClientError()) {
-                    LOGGER.error("error", e);
                     resultData.setCode(CommonErrorCode.SERVER_ERROR.getCode());
                     resultData.setMessage(CommonErrorCode.SERVER_ERROR.getMessage());
                 }
