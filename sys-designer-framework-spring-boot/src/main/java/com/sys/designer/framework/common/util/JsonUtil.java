@@ -116,6 +116,9 @@ public final class JsonUtil {
         if (!StringUtils.hasText(jsonString)) {
             return null;
         }
+        if (UnSerializable.class.isAssignableFrom(clazz)) {
+            throw new BusinessRuntimeException(CommonErrorCode.SERVER_ERROR, clazz.getName() + " forbidden deserialize.");
+        }
         try {
             return OBJECT_MAPPER.readValue(jsonString, clazz);
         } catch (JsonProcessingException e) {
@@ -216,7 +219,10 @@ public final class JsonUtil {
     }
 
     public static ObjectMapper getObjectMapper() {
-        return OBJECT_MAPPER;
+        // 返回拷贝而非共享实例：防止调用方误调 activateDefaultTyping 等配置
+        // 污染全局 OBJECT_MAPPER，进而打开多态反序列化 RCE 风险。
+        // copy() 会保留已注册的 TypeEnum 模块，不影响现有逻辑。
+        return OBJECT_MAPPER.copy();
     }
 
     public static <T> T mapToBean(Map map, Class<T> typeClass) {
