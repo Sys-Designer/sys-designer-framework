@@ -33,4 +33,5 @@ public class CommonConst {
     public static final String SECURITY_REFRESH_KEY = "x-security-refresh-key";
     public static final String USER_SOURCE = "user";
     public static final String MCP_SOURCE = "mcp";
+    public static final String AI = "ai";
 }

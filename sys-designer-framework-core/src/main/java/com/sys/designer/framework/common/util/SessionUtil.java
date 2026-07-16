@@ -187,7 +187,7 @@ public final class SessionUtil {
     }
 
     public static boolean isAi() {
-        return isMcp();
+        return isMcp() || CommonConst.AI.equals(source());
     }
 
     public static List<Object> getValues() {

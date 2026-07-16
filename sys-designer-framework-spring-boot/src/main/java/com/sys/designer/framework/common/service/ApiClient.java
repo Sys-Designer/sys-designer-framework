@@ -19,13 +19,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ApiClient {
     private String id;
     private String url;
     private WebClient.Builder clientBuilder;
     private String authorization;
-    private Map<String, String> header = new HashMap<>();
+    private Map<String, String> header = new ConcurrentHashMap<>();
     private long maxTimeout = 5 * 60 * 1000;
     private String referer;
 
@@ -77,20 +78,29 @@ public class ApiClient {
         return this;
     }
 
+    public ApiClient referer(String referer) {
+        this.referer = referer;
+        return this;
+    }
+
     protected Map<String, Object> uriVariables() {
         return Collections.emptyMap();
     }
 
     public boolean ping() {
-        String text = clientBuilder()
-                .build()
-                .get()
-                .uri(getUrl() + "/ping", uriVariables())
-                .retrieve()
-                .bodyToMono(String.class)
-                .block(Duration.ofMillis(getMaxTimeout()));
+        try {
+            String text = clientBuilder()
+                    .build()
+                    .get()
+                    .uri(getUrl() + "/ping", uriVariables())
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block(Duration.ofMillis(getMaxTimeout()));
 
-        return "pong".equalsIgnoreCase(text);
+            return "pong".equalsIgnoreCase(text);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private String getUrl() {
@@ -98,7 +108,7 @@ public class ApiClient {
     }
 
     private long getMaxTimeout() {
-        return 5 * 60 * 1000;
+        return this.maxTimeout;
     }
 
     public ApiClient timeout(long timeout) {
@@ -164,7 +174,6 @@ public class ApiClient {
 
     public <T> ResultData<T> request(Object data, Class<T> returnType, WebClient.RequestBodyUriSpec spec) {
         String url = this.getUrl();
-        fillHeader(spec);
         WebClient.RequestBodySpec uri = spec.uri(url, uriVariables());
         if (!(data instanceof MultiValueMap)) {
             uri.contentType(MediaType.APPLICATION_JSON);
@@ -181,13 +190,16 @@ public class ApiClient {
         if (fillUrl) {
             spec.uri(getUrl(), uriVariables());
         }
-
-        T data = spec.exchangeToMono(res -> {
-            resultData.setHeader(res.headers().asHttpHeaders());
-            processError(resultData, res);
-            return res.bodyToMono(returnType);
-        }).block(Duration.ofMillis(getMaxTimeout()));
-        return processResultData(data, ResultData.isOk(), returnType);
+        try {
+            T data = spec.exchangeToMono(res -> {
+                resultData.setHeader(res.headers().asHttpHeaders());
+                processError(resultData, res);
+                return res.bodyToMono(returnType);
+            }).block(Duration.ofMillis(getMaxTimeout()));
+            return processResultData(data, ResultData.isOk(), returnType);
+        } catch (Exception e) {
+            return ResultData.isFail(CommonErrorCode.SERVER_ERROR, e.getMessage());
+        }
     }
 
     protected void processError(ResultData<?> clientResultData, ClientResponse response) {
@@ -197,6 +209,9 @@ public class ApiClient {
         }
         clientResultData.setCode(CommonErrorCode.ERROR.getCode());
         int code = response.statusCode().value();
+        if (response.statusCode() instanceof HttpStatus httpStatus) {
+            clientResultData.setMessage(httpStatus.getReasonPhrase());
+        }
         if (code >= 500) {
             clientResultData.setCode(CommonErrorCode.SERVER_ERROR.getCode());
         } else if (code >= 400) {
@@ -298,26 +313,30 @@ public class ApiClient {
     }
 
     public <T> ResultData<T> getData(Class<T> returnType, boolean isList) {
-        String url = getUrl();
-        WebClient.RequestHeadersUriSpec<?> requestHeadersUriSpec = clientBuilder().build().get();
-        fillHeader(requestHeadersUriSpec);
-        WebClient.RequestHeadersSpec<?> uri = requestHeadersUriSpec
-                .uri(url, uriVariables());
-        if (isList) {
-            ResponseEntity<List> responseEntity = uri
-                    .retrieve().toEntity(List.class)
+        try {
+            String url = getUrl();
+            WebClient.RequestHeadersUriSpec<?> requestHeadersUriSpec = clientBuilder().build().get();
+            fillHeader(requestHeadersUriSpec);
+            WebClient.RequestHeadersSpec<?> uri = requestHeadersUriSpec
+                    .uri(url, uriVariables());
+            if (isList) {
+                ResponseEntity<List> responseEntity = uri
+                        .retrieve().toEntity(List.class)
+                        .block(Duration.ofMillis(getMaxTimeout()));
+                return processResult(responseEntity, returnType);
+            } else if (String.class.equals(returnType)) {
+                ResponseEntity<String> responseEntity = uri
+                        .retrieve().toEntity(String.class)
+                        .block(Duration.ofMillis(getMaxTimeout()));
+                return processResult(responseEntity, returnType);
+            }
+            ResponseEntity<Map> responseEntity = uri
+                    .retrieve().toEntity(Map.class)
                     .block(Duration.ofMillis(getMaxTimeout()));
             return processResult(responseEntity, returnType);
-        } else if (String.class.equals(returnType)) {
-            ResponseEntity<String> responseEntity = uri
-                    .retrieve().toEntity(String.class)
-                    .block(Duration.ofMillis(getMaxTimeout()));
-            return processResult(responseEntity, returnType);
+        } catch (Exception e) {
+            return ResultData.isFail(CommonErrorCode.SERVER_ERROR, e.getMessage());
         }
-        ResponseEntity<Map> responseEntity = uri
-                .retrieve().toEntity(Map.class)
-                .block(Duration.ofMillis(getMaxTimeout()));
-        return processResult(responseEntity, returnType);
     }
 
     public <T> ResultData<T> updateData(Object data, Class<T> returnType) {
@@ -325,32 +344,24 @@ public class ApiClient {
         fillHeader(put);
         put.bodyValue(data);
         return handleFetch(true, put, returnType);
-//        return processResultData(resultData, ResultData.isOk(), returnType);
-//        ResponseEntity<Map> responseEntity = put
-//                .uri(getUrl(), uriVariables())
-//                .bodyValue(data)
-//                .retrieve().toEntity(Map.class)
-//                .block(Duration.ofMillis(getMaxTimeout()));
-//        return processResult(responseEntity, returnType);
     }
 
     public <T> ResultData<T> deleteData(Class<T> returnType) {
-        String url = getUrl();
-        WebClient.RequestHeadersUriSpec<?> delete = clientBuilder().build().delete();
-        fillHeader(delete);
+        try {
+            String url = getUrl();
+            WebClient.RequestHeadersUriSpec<?> delete = clientBuilder().build().delete();
+            fillHeader(delete);
 
-        WebClient.RequestHeadersSpec<?> spec = delete.uri(url, uriVariables());
-        ResultData<T> resultData = ResultData.isOk();
-        T data = spec.exchangeToMono(res -> {
-            resultData.setHeader(res.headers().asHttpHeaders());
-            processError(resultData, res);
-            return res.bodyToMono(returnType);
-        }).block(Duration.ofMillis(getMaxTimeout()));
-        return processResultData(data, ResultData.isOk(), returnType);
-//        ResponseEntity<Map> responseEntity = delete
-//                .uri(url, uriVariables())
-//                .retrieve().toEntity(Map.class)
-//                .block(Duration.ofMillis(getMaxTimeout()));
-//        return processResult(responseEntity, returnType);
+            WebClient.RequestHeadersSpec<?> spec = delete.uri(url, uriVariables());
+            ResultData<T> resultData = ResultData.isOk();
+            T data = spec.exchangeToMono(res -> {
+                resultData.setHeader(res.headers().asHttpHeaders());
+                processError(resultData, res);
+                return res.bodyToMono(returnType);
+            }).block(Duration.ofMillis(getMaxTimeout()));
+            return processResultData(data, ResultData.isOk(), returnType);
+        } catch (Exception e) {
+            return ResultData.isFail(CommonErrorCode.SERVER_ERROR, e.getMessage());
+        }
     }
 }
