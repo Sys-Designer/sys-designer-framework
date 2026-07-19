@@ -12,6 +12,7 @@ import com.sys.designer.framework.common.util.ValueUtil;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public class GlobalLocalQueueManager {
     private final static Map<String, QueueEntry> GLOBAL_QUEUE = new ConcurrentHashMap<>();
@@ -38,7 +39,15 @@ public class GlobalLocalQueueManager {
         if (Objects.isNull(queueEntry)) {
             queueEntry = get("default");
         }
-        queueEntry.getBlockingQueue().put(message);
+        try {
+            if (!queueEntry.getBlockingQueue().offer(message, 5, TimeUnit.SECONDS)) {
+                throw new BusinessRuntimeException(CommonErrorCode.SERVER_ERROR,
+                        "local queue %s is full, message dropped.", message.getKey());
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BusinessRuntimeException(CommonErrorCode.SERVER_ERROR, e);
+        }
     }
 
     public static void close() {

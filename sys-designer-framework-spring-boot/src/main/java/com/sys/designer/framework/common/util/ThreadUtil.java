@@ -14,7 +14,7 @@ public final class ThreadUtil {
     public static Thread runJob(String name, Integer index, Runnable runnable) {
         List<Object> values = SessionUtil.getValues();
         Thread.Builder.OfVirtual builder = Objects.nonNull(index) ? Thread.ofVirtual().name(name, index) : Thread.ofVirtual().name(name);
-        Thread start = builder.start(() -> {
+        return builder.start(() -> {
             SessionUtil.setValues(values);
             try {
                 runnable.run();
@@ -22,7 +22,5 @@ public final class ThreadUtil {
                 SessionUtil.remove();
             }
         });
-        start.run();
-        return start;
     }
 }
