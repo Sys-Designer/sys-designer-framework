@@ -110,6 +110,18 @@ public class UserBaseInfo {
         return (String) getValue("username");
     }
 
+    public String getUsername() {
+        return username();
+    }
+
+    public String getNickname() {
+        return nickname();
+    }
+
+    public String getAvatar() {
+        return avatar();
+    }
+
     public String nickname() {
         return (String) getValue("nickname");
     }
