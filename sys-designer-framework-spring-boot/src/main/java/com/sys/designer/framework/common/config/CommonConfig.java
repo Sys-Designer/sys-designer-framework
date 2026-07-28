@@ -57,9 +57,9 @@ public class CommonConfig {
         SystemUtil.init();
     }
 
-    private static List<String> stripPrefixes;
+    private volatile List<String> stripPrefixes;
 
-    private static List<String> resourcePrefix;
+    private volatile List<String> resourcePrefix;
 
 
     public String getValue(String key, String defaultValue) {
@@ -194,7 +194,7 @@ public class CommonConfig {
         if (ValueUtil.isNotEmpty(value)) {
             String[] urls = value.split(",");
             for (String url : urls) {
-                if (!value.endsWith("/")) {
+                if (!url.endsWith("/")) {
                     throw new BusinessRuntimeException(CommonErrorCode.SERVER_ERROR, Config.App.APP_API_PREFIX + ":" + url + " must be endsWith /");
                 }
                 stripPrefixes.add(url);
