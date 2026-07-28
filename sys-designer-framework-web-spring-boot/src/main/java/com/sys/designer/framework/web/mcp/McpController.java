@@ -168,7 +168,7 @@ public class McpController {
                 SseEmitter first = temp.getFirst();
                 first.complete();
             } catch (Exception e) {
-                // ignore
+                LOGGER.debug("complete emitter failed", e);
             }
         }
         STREAMABLE_SESSION_MAP.put(mcpSessionId, new Tuple2<>(emitter, userId));

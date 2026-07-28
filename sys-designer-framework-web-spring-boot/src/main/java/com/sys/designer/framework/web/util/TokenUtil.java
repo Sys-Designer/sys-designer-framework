@@ -20,8 +20,11 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class TokenUtil {
+    private static final Logger LOGGER = LoggerFactory.getLogger(TokenUtil.class);
 
     private static final CommonConfig commonConfig;
 
@@ -36,7 +39,7 @@ public final class TokenUtil {
         try {
             return ComponentUtil.getBean(TokenGenerator.class);
         } catch (Exception e) {
-            //ignore
+            LOGGER.warn("tokenGenerator bean not found", e);
         }
         return null;
     }

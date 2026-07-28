@@ -86,7 +86,7 @@ public final class Util extends ValueUtil {
                     try {
                         value = Integer.parseInt(val);
                     } catch (Exception e) {
-                        // ignore
+                        LOGGER.debug("parse int failed, value={}", val, e);
                     }
                 } else if (value instanceof Integer val) {
                     value = String.valueOf(val);

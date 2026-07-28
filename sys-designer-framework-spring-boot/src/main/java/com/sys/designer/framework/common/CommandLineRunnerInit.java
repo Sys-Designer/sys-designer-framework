@@ -14,12 +14,16 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 @Order(1)
 @Component
 @Primary
 public class CommandLineRunnerInit implements CommandLineRunner {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CommandLineRunnerInit.class);
+
     @Resource
     private CommonConfig commonConfig;
 
@@ -37,7 +41,7 @@ public class CommandLineRunnerInit implements CommandLineRunner {
         try {
             CacheUtil.init();
         } catch (Exception e) {
-            // ignore
+            LOGGER.warn("CacheUtil.init failed", e);
         }
     }
 }

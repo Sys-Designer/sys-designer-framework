@@ -5,12 +5,14 @@ import com.sys.designer.framework.api.permission.PermissionConst;
 import com.sys.designer.framework.api.permission.PermissionResourceService;
 import com.sys.designer.framework.common.config.CommonConfig;
 import com.sys.designer.framework.common.config.Config;
-import com.sys.designer.framework.common.errorcode.CommonErrorCode;
-import com.sys.designer.framework.common.exception.BusinessRuntimeException;
 
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class PermissionUtil {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PermissionUtil.class);
+
     private static CommonConfig commonConfig;
     private static PermissionResourceService permissionResourceService;
 
@@ -23,7 +25,7 @@ public final class PermissionUtil {
         try {
             permissionResourceService = ComponentUtil.getBean(PermissionResourceService.class);
         } catch (Exception e) {
-            // ignore
+            LOGGER.warn("init permissionResourceService failed", e);
         }
     }
 

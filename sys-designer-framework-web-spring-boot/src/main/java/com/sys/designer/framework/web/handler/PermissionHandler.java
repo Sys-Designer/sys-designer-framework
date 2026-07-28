@@ -62,13 +62,13 @@ public class PermissionHandler implements ApplicationLifeCycleService {
         try {
             resourcePermissionService = ComponentUtil.getBean(ResourcePermissionService.class);
         } catch (Exception e) {
-            // ignore
+            LOGGER.warn("init resourcePermissionService failed", e);
         }
 
         try {
             sessionService = ComponentUtil.getBean(SessionService.class);
         } catch (Exception e) {
-            // ignore
+            LOGGER.warn("init sessionService failed", e);
         }
     }
 

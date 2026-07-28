@@ -58,7 +58,7 @@ public class ApiClientImpl implements ApiClient {
         try {
             webServiceClientBuilder = ComponentUtil.getBean(ApiClient.SERVICE_CLIENT_NAME, WebClient.Builder.class);
         } catch (Exception e) {
-            // ignore
+            LOGGER.warn("init service webClient failed", e);
         }
     }
 
