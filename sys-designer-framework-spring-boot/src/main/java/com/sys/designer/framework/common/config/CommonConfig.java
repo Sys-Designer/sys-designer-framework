@@ -43,6 +43,9 @@ public class CommonConfig {
     @Value("${spring.profiles.active:prod}")
     private String activeProfile;
 
+    @Value("${oc.test.enabled:false}")
+    private boolean testEnabled;
+
     private String instanceName;
     private String ip;
 
@@ -240,6 +243,10 @@ public class CommonConfig {
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public boolean enabledTest() {
+        return testEnabled;
     }
 
     public boolean isTest() {

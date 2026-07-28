@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.format.FormatterRegistry;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
@@ -67,6 +68,26 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addFormatters(FormatterRegistry registry) {
         registry.addConverter(new PartFileConvert());
+    }
+
+    /**
+     * 跨域配置：仅在 test 环境下对 MCP 端点开放跨域，生产环境不启用，保证安全。
+     * 原 McpController 上的 @CrossOrigin 已移除，统一在此处按 isTest 条件控制。
+     */
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        if (!commonConfig.enabledTest()) {
+            return;
+        }
+        registry.addMapping("/api/mcp/**")
+                .allowedOriginPatterns("*")
+                .allowedMethods("GET", "POST", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .exposedHeaders(
+                        com.sys.designer.framework.web.mcp.McpController.MCP_SESSION_ID_HEADER,
+                        "Last-Event-ID", "Last-Event-Id")
+                .allowCredentials(false)
+                .maxAge(3600L);
     }
 
     /**

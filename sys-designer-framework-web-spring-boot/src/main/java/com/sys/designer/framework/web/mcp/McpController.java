@@ -19,7 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -72,7 +71,6 @@ public class McpController {
 
     // ======================== Streamable HTTP ========================
 
-    @CrossOrigin
     @PostMapping(
             value = "/mcp",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -139,7 +137,6 @@ public class McpController {
         return builder.body(results);
     }
 
-    @CrossOrigin
     @GetMapping(value = "/mcp", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Object streamableHttpGet(
             @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String accept,
@@ -191,7 +188,6 @@ public class McpController {
         return emitter;
     }
 
-    @CrossOrigin
     @DeleteMapping("/mcp")
     public ResponseEntity<Void> streamableHttpDelete(
             @RequestHeader(value = MCP_SESSION_ID_HEADER, required = false) String mcpSessionId) {
@@ -208,7 +204,6 @@ public class McpController {
 
     // ======================== Legacy HTTP+SSE ========================
 
-    @CrossOrigin
     @GetMapping(value = "/mcp/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter legacySse(HttpServletRequest request) {
         SseEmitter emitter = new SseEmitter(sseTimeout);
@@ -248,7 +243,6 @@ public class McpController {
         return emitter;
     }
 
-    @CrossOrigin
     @PostMapping(value = "/mcp/messages", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> legacyMessage(
             HttpServletRequest httpServletRequest,
