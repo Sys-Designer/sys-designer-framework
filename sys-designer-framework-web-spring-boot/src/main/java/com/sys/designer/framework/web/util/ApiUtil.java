@@ -10,6 +10,7 @@ import com.sys.designer.framework.common.entity.TextFileContent;
 import com.sys.designer.framework.common.errorcode.CommonErrorCode;
 import com.sys.designer.framework.common.exception.BusinessRuntimeException;
 import com.sys.designer.framework.common.util.SessionUtil;
+import com.sys.designer.framework.common.util.SystemUtil;
 import com.sys.designer.framework.common.util.ValueUtil;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.Cookie;
@@ -29,6 +30,8 @@ import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -63,13 +66,21 @@ public final class ApiUtil {
     public static void processCommonArguments(HttpServletRequest request) {
         String projectId = request.getHeader(CommonConst.X_PROJECT_ID);
         if (ValueUtil.isNotEmpty(projectId)) {
-            SessionUtil.setProjectId(Long.parseLong(projectId));
-            MDC.put(CommonConst.PROJECT_ID, projectId);
+            try {
+                SessionUtil.setProjectId(Long.parseLong(projectId));
+                MDC.put(CommonConst.PROJECT_ID, projectId);
+            } catch (NumberFormatException e) {
+                // 非法的 projectId 不阻断请求，交由后续鉴权逻辑处理
+            }
         }
         String tenantId = request.getHeader(CommonConst.X_TENANT_ID);
         if (ValueUtil.isNotEmpty(tenantId)) {
-            SessionUtil.setTenantId(Long.parseLong(tenantId));
-            MDC.put(CommonConst.TENANT_ID, tenantId);
+            try {
+                SessionUtil.setTenantId(Long.parseLong(tenantId));
+                MDC.put(CommonConst.TENANT_ID, tenantId);
+            } catch (NumberFormatException e) {
+                // 非法的 tenantId 不阻断请求，交由后续鉴权逻辑处理
+            }
         }
 
         String branch = request.getHeader(CommonConst.X_BRANCH);
@@ -187,7 +198,7 @@ public final class ApiUtil {
         if ("xlsx".equalsIgnoreCase(fileType)) {
             return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
         } else if ("html".equalsIgnoreCase(fileType)) {
-            return " Content-Type: text/html;charset:utf-8";
+            return "text/html;charset=utf-8";
         }
 
         return null;
@@ -197,10 +208,32 @@ public final class ApiUtil {
         downloadFile(filePath, null);
     }
 
+    /**
+     * 下载文件。
+     * 安全约束：仅允许访问受管资源目录（private/public/html/plugin）内的文件。
+     * 通过以受管私有资源目录为基准解析并规范化路径，防止 ".." 路径穿越；
+     * 进一步解析真实路径（含符号链接），二次校验是否仍位于允许目录内，防止软链接逃逸。
+     */
     public static void downloadFile(String filePath, String fileName) {
-        File file = new File(filePath);
-        if (!file.exists()) {
-            throw new BusinessRuntimeException(CommonErrorCode.SERVER_ERROR, "file not found.");
+        if (ValueUtil.isEmpty(filePath)) {
+            throw new BusinessRuntimeException(CommonErrorCode.PARAMETER_MISSING, "filePath must not be empty.");
+        }
+        // 以受管私有资源目录为基准解析，再规范化，杜绝 ".." 穿越
+        Path base = Paths.get(SystemUtil.privateResourceDir()).toAbsolutePath().normalize();
+        Path target = base.resolve(filePath).normalize();
+        File file = target.toFile();
+        if (!file.exists() || !file.isFile()) {
+            throw new BusinessRuntimeException(CommonErrorCode.NOT_FOUND, "file not found.");
+        }
+        // 解析真实路径（含符号链接），二次校验是否仍在允许目录内
+        Path realPath;
+        try {
+            realPath = target.toRealPath();
+        } catch (IOException e) {
+            throw new BusinessRuntimeException(CommonErrorCode.NOT_FOUND, "file not found.");
+        }
+        if (!isUnderAllowedDir(realPath)) {
+            throw new BusinessRuntimeException(CommonErrorCode.ACCESS_DENIED, "illegal file path.");
         }
         if (ValueUtil.isEmpty(fileName)) {
             fileName = file.getName();
@@ -209,11 +242,25 @@ public final class ApiUtil {
         response.setContentType("application/force-download");
         response.addHeader("Content-disposition", "attachment;fileName=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
         response.addHeader("Access-Control-Expose-Headers", "Content-Disposition");
-        try {
-            Files.copy(file.toPath(), response.getOutputStream());
+        try (ServletOutputStream out = response.getOutputStream()) {
+            Files.copy(realPath, out);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new BusinessRuntimeException(CommonErrorCode.SERVER_ERROR, e);
         }
+    }
+
+    /**
+     * 判断真实路径是否位于受管资源目录（private/public/html/plugin）之一内。
+     */
+    private static boolean isUnderAllowedDir(Path realPath) {
+        Path privateDir = Paths.get(SystemUtil.privateResourceDir()).toAbsolutePath().normalize();
+        Path publicDir = Paths.get(SystemUtil.publicDir()).toAbsolutePath().normalize();
+        Path htmlDir = Paths.get(SystemUtil.htmlDir()).toAbsolutePath().normalize();
+        Path pluginDir = Paths.get(SystemUtil.pluginDir()).toAbsolutePath().normalize();
+        return realPath.startsWith(privateDir)
+                || realPath.startsWith(publicDir)
+                || realPath.startsWith(htmlDir)
+                || realPath.startsWith(pluginDir);
     }
 
     public static void initDownloadResponse(HttpServletResponse response, String fileName) {
