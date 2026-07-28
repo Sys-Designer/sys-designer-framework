@@ -47,8 +47,12 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
                 userId = request.getParameter(CommonConst.X_USER_ID);
             }
             if (ValueUtil.isNotEmpty(userId)) {
-                SessionUtil.setUserId(Long.parseLong(userId));
-                MDC.put(CommonConst.USER_ID, userId);
+                try {
+                    SessionUtil.setUserId(Long.parseLong(userId));
+                    MDC.put(CommonConst.USER_ID, userId);
+                } catch (NumberFormatException e) {
+                    // 非法的 userId 不阻断请求，交由后续鉴权逻辑处理
+                }
             }
 
             String requestId = request.getHeader(CommonConst.X_REQUEST_ID);

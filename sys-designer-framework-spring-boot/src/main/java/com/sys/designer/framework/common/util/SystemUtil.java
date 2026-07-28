@@ -4,12 +4,15 @@
 
 package com.sys.designer.framework.common.util;
 
+import com.sys.designer.framework.common.errorcode.CommonErrorCode;
+import com.sys.designer.framework.common.exception.BusinessRuntimeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -18,6 +21,8 @@ import java.util.Objects;
 import java.util.function.Function;
 
 public final class SystemUtil {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SystemUtil.class);
+
     public static final String OUTPUT_DIR_CONFIG_KEY = "oc.system.output.dir";
 
     private static String getAppBinWorkDir() {
@@ -145,44 +150,77 @@ public final class SystemUtil {
     }
 
     public static boolean killProcess(int processId) {
+        String cmd = "kill -15 " + processId;
+        if (isWindow()) {
+            cmd = "taskkill /PID " + processId + " /F";
+        }
         try {
-            String cmd = "kill -15 " + processId;
-            if (isWindow()) {
-                cmd = "taskkill /PID " + processId + " /F";
-            }
-            Process killProcess = Runtime.getRuntime().exec(cmd);
+            ProcessBuilder builder = new ProcessBuilder(tokenize(cmd));
+            builder.redirectErrorStream(true);
+            Process killProcess = builder.start();
             return killProcess.waitFor() == 0;
         } catch (Exception e) {
-            //ignore
+            LOGGER.warn("killProcess failed, pid={}", processId, e);
+            return false;
+        }
+    }
+
+    /**
+     * 执行系统命令。
+     * 安全约束：禁止包含 shell 元字符（; | & $ ` > < 等），避免命令注入；
+     * 不通过 shell 执行，命令按空白拆分为参数列表。
+     */
+    public static List<String> execCommand(String command, Function<String, Boolean> function) {
+        List<String> list = new ArrayList<>();
+        if (ValueUtil.isEmpty(command) || containsShellMeta(command)) {
+            throw new BusinessRuntimeException(CommonErrorCode.PARAMETER_INVALID, "illegal command.");
+        }
+        try {
+            ProcessBuilder builder = new ProcessBuilder(tokenize(command));
+            // 合并标准错误到标准输出，避免子进程写 stderr 填满管道导致阻塞（死锁）
+            builder.redirectErrorStream(true);
+            Process child = builder.start();
+            try (BufferedReader bufferedReader = new BufferedReader(
+                    new InputStreamReader(child.getInputStream()))) {
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    if (Objects.nonNull(function) && !ValueUtil.isTrue(function.apply(line))) {
+                        continue;
+                    }
+                    list.add(line);
+                }
+            }
+            try {
+                child.waitFor();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                LOGGER.warn("execCommand interrupted: {}", command);
+            }
+        } catch (IOException e) {
+            LOGGER.warn("execCommand failed: {}", command, e);
+        }
+        return list;
+    }
+
+    private static boolean containsShellMeta(String command) {
+        for (int i = 0; i < command.length(); i++) {
+            char c = command.charAt(i);
+            if (c == ';' || c == '|' || c == '&' || c == '$' || c == '>'
+                    || c == '<' || c == '`' || c == '\n' || c == '\r' || c == '\t') {
+                return true;
+            }
         }
         return false;
     }
 
-    public static List<String> execCommand(String command, Function<String, Boolean> function) {
-        List<String> list = new ArrayList<>();
-        try {
-            Process child = Runtime.getRuntime().exec(command);
-            InputStream in = child.getInputStream();
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
-            String line;
-            while ((line = bufferedReader.readLine()) != null) {
-                if (Objects.nonNull(function)) {
-                    if (!ValueUtil.isTrue(function.apply(line))) {
-                        continue;
-                    }
-                }
-                list.add(line);
+    private static List<String> tokenize(String command) {
+        List<String> tokens = new ArrayList<>();
+        for (String token : command.trim().split("\\s+")) {
+            if (ValueUtil.isNotEmpty(token)) {
+                tokens.add(token);
             }
-            in.close();
-            try {
-                child.waitFor();
-            } catch (InterruptedException e) {
-                // ignore
-            }
-        } catch (IOException e) {
-            // ignore
         }
-        return list;
+        return tokens;
     }
 
     public static String resolvePath(String path) {
