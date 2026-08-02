@@ -24,7 +24,7 @@ public class GraphQlController {
     }
 
     @PostMapping("${oc.query.api:/graphql/query}")
-    @EncryptResponse
+//    @EncryptResponse
     public Object query(@RequestBody QueryRequest param) {
         ExecutionResult result = this.graphQL.execute(param.getQuery());
         return GraphUtil.getData(result);
