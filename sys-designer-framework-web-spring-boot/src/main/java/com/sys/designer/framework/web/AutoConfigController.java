@@ -31,7 +31,7 @@ public class AutoConfigController {
 
     @Permission(resourceId = "autoConfig", authorities = {PermissionConst.AUTHORITY_LOGIN})
     @PostMapping("/autoConfig")
-    @EncryptResponse
+//    @EncryptResponse
     public ResultData<?> autoConfig(@RequestBody AutoConfigRequest autoConfigRequest) {
         try {
             AutoConfigResponse result = autoConfigService.autoConfig(autoConfigRequest);
